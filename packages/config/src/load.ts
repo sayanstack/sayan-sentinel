@@ -4,6 +4,7 @@ export interface FeatureFlags {
   aiEnabled: boolean;
   githubAppEnabled: boolean;
   hexstrikeEnabled: boolean;
+  hostedMode: boolean;
 }
 
 export interface SentinelConfig {
@@ -33,7 +34,7 @@ function deriveFeatureFlags(env: Env): FeatureFlags {
 
   const hexstrikeEnabled = env.HEXSTRIKE_ENABLED && !!env.HEXSTRIKE_BASE_URL;
 
-  return { aiEnabled, githubAppEnabled, hexstrikeEnabled };
+  return { aiEnabled, githubAppEnabled, hexstrikeEnabled, hostedMode: env.SENTINEL_HOSTED_MODE };
 }
 
 /**

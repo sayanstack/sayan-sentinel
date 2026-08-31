@@ -60,4 +60,42 @@ describe("loadConfig", () => {
     const config = loadConfig(baseEnv);
     expect(config.env.LOCAL_LAB_MODE).toBe(false);
   });
+
+  it("defaults hostedMode to false when unset", () => {
+    const config = loadConfig(baseEnv);
+    expect(config.features.hostedMode).toBe(false);
+  });
+
+  it("enables hostedMode when SENTINEL_HOSTED_MODE is set", () => {
+    const config = loadConfig({ ...baseEnv, SENTINEL_HOSTED_MODE: "true" });
+    expect(config.features.hostedMode).toBe(true);
+  });
+
+  it("refuses to load when both SENTINEL_HOSTED_MODE and LOCAL_LAB_MODE are enabled", () => {
+    expect(() =>
+      loadConfig({ ...baseEnv, SENTINEL_HOSTED_MODE: "true", LOCAL_LAB_MODE: "true" }),
+    ).toThrow(ConfigValidationError);
+  });
+
+  it("refuses to load when SENTINEL_HOSTED_MODE is set with a dynamic validation tier above 1", () => {
+    expect(() =>
+      loadConfig({ ...baseEnv, SENTINEL_HOSTED_MODE: "true", DYNAMIC_VALIDATION_MAX_TIER: "2" }),
+    ).toThrow(ConfigValidationError);
+  });
+
+  it("allows SENTINEL_HOSTED_MODE with the default (tier 1) dynamic validation cap", () => {
+    const config = loadConfig({ ...baseEnv, SENTINEL_HOSTED_MODE: "true" });
+    expect(config.env.DYNAMIC_VALIDATION_MAX_TIER).toBe(1);
+  });
+
+  it("allows LOCAL_LAB_MODE alone (self-hosted local demo) without SENTINEL_HOSTED_MODE", () => {
+    const config = loadConfig({ ...baseEnv, LOCAL_LAB_MODE: "true" });
+    expect(config.env.LOCAL_LAB_MODE).toBe(true);
+    expect(config.features.hostedMode).toBe(false);
+  });
+
+  it("allows a higher dynamic validation tier for a self-hosted (non-hosted-mode) deployment", () => {
+    const config = loadConfig({ ...baseEnv, DYNAMIC_VALIDATION_MAX_TIER: "3" });
+    expect(config.env.DYNAMIC_VALIDATION_MAX_TIER).toBe(3);
+  });
 });

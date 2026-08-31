@@ -128,6 +128,12 @@ This repository is being built in public, phase by phase, tracked in
   end-to-end against real routes extracted by the Rules Engine's AST
   parser, not just tested in isolation. See
   [docs/source-runtime-correlation.md](docs/source-runtime-correlation.md).
+- ✅ Hosted-mode config interlocks (`SENTINEL_HOSTED_MODE`) — config load
+  genuinely _fails_ (not just a warning) if a hosted deployment is
+  configured with `LOCAL_LAB_MODE=true` or a dynamic-validation tier
+  above 1, since either would let an anonymous hosted user reach
+  private infrastructure or trigger not-yet-implemented destructive
+  validation. See [docs/hosted-security-model.md](docs/hosted-security-model.md).
 - ✅ Scan result persistence (`apps/worker/src/persistence/
 persist-scan-result.ts`) — fixed a real pre-existing gap: the
   dashboard has read `prisma.scan`/`prisma.finding` since an earlier

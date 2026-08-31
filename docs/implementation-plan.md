@@ -38,6 +38,34 @@ Status legend: `not started` · `in progress` · `done`
 | 27    | Full Stack Scan orchestration + worker pipeline wiring                                      | done — see notes below                                                   |
 | 28    | Web Targets dashboard UI (real, browser-verified)                                           | done — see notes below                                                   |
 | 29    | Scan result persistence (fixed a real pre-existing gap)                                     | done — see notes below                                                   |
+| 30    | Hosted-mode config interlocks (SENTINEL_HOSTED_MODE)                                        | done — see notes below                                                   |
+
+## Phase 30 — Hosted-mode config interlocks
+
+Full writeup in [docs/hosted-security-model.md](hosted-security-model.md).
+Most of what "hosted mode" typically needs was already true
+unconditionally in this codebase (mandatory verification/expiration,
+private-network blocking, Tier 2/3 unimplemented everywhere, always-on
+audit logging) — this phase adds the narrower set of things that
+legitimately need to differ between a trusted self-hosted operator and
+an anonymous multi-tenant hosted deployment.
+
+**Built**: `SENTINEL_HOSTED_MODE` in `packages/config`, enforced via a
+Zod `.superRefine()` cross-field check at config-load time (not a
+runtime warning — the process fails to start): cannot be combined with
+`LOCAL_LAB_MODE=true` (would let a hosted user reach private
+infrastructure), and cannot be combined with a
+`DYNAMIC_VALIDATION_MAX_TIER` above 1 (a forward-looking guard — Tier
+2/3 don't exist yet, but the schema already accepts higher values for a
+future self-hosted operator, and hosted mode caps it regardless so that
+capability can never ship enabled for anonymous use by accident).
+`features.hostedMode` derived alongside the existing feature flags. 7
+new tests, including confirming a self-hosted (non-hosted-mode)
+deployment is unaffected by either restriction.
+
+**Explicitly deferred**: no per-request/per-IP API rate limiting, no
+tenant-level quota enforcement — this is a config-time interlock on the
+two settings that matter, not a runtime firewall.
 
 ## Phase 29 — Scan result persistence
 
