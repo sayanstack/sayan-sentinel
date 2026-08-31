@@ -42,8 +42,20 @@ describe("cloneRepositoryAtCommit", () => {
   });
 
   afterEach(() => {
-    fs.rmSync(originDir, { recursive: true, force: true });
-    fs.rmSync(destParent, { recursive: true, force: true });
+    // maxRetries/retryDelay ride out the transient EBUSY/EPERM Windows can
+    // throw when a just-exited git subprocess hasn't released a file
+    // handle yet — not a sign the test itself did anything wrong.
+    const rmOptions = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;
+    try {
+      fs.rmSync(originDir, rmOptions);
+    } catch {
+      // Best-effort cleanup — the OS temp directory gets reclaimed eventually.
+    }
+    try {
+      fs.rmSync(destParent, rmOptions);
+    } catch {
+      // Best-effort cleanup — the OS temp directory gets reclaimed eventually.
+    }
   });
 
   it("checks out the exact requested commit, not just HEAD", async () => {

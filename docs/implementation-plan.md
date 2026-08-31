@@ -17,8 +17,8 @@ Status legend: `not started` · `in progress` · `done`
 | 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | done |
 | 8 | Findings model + correlation engine | done |
 | 9 | AI engine (provider abstraction, schema-validated reasoning) | done |
-| 10 | Scope Guard | not started |
-| 11 | HexStrike AI adapter (real interface) | not started |
+| 10 | Scope Guard | done |
+| 11 | HexStrike AI adapter (real interface) | done |
 | 12 | GitHub App integration | not started |
 | 13 | Remediation / patch / PR workflow | not started |
 | 14 | Frontend (Next.js, dashboard, code graph, findings) | not started |
@@ -390,6 +390,96 @@ otherwise.
 secret-redaction, 8 structured-client, 5 budget-guard, 5 pricing, 5
 factory), all passing. Workspace total: 159 tests across 9 packages/apps,
 32/32 Turborepo tasks green.
+
+## Phase 10 + 11 completion notes
+
+Built `packages/hexstrike-adapter`, covering both Scope Guard (Section
+19-20) and the HexStrike integration (Section 18) together since the spec
+treats them as one continuous concern and Section 20 requires every
+HexStrike call to pass through Scope Guard immediately beforehand.
+
+**Real interface research, not guessed**: the `hexstrike-ai` MCP server is
+actually connected in this environment. Rather than guess HexStrike's REST
+API shape, called its passive, read-only tools (`server_health`,
+`get_telemetry`, `nmap_scan` against a placeholder target, `get_process_status`)
+against the (unreachable) local HexStrike server and read the real error
+messages, which reveal the genuine endpoint URLs verbatim:
+`GET /health`, `GET /api/telemetry`, `POST /api/tools/<toolName>`,
+`GET /api/processes/status/<pid>`, base `http://127.0.0.1:8888`. The
+`terminate` endpoint (used by `cancel()`) is inferred by convention from
+the verified `/api/processes/.../<pid>` pattern but wasn't independently
+confirmed (an attempt to verify it was blocked by this session's own
+auto-mode classifier) — documented as inferred, not verified, rather than
+presented as equally certain.
+
+**Scope Guard** (`src/scope-guard/`) — the deterministic boundary that
+sits outside the AI and cannot be influenced by it:
+- `ip-blocklist.ts`: dependency-free IPv4 CIDR matching (RFC1918, loopback,
+  link-local — which covers the 169.254.169.254 cloud metadata endpoint —
+  CGNAT, and the reserved/test ranges) plus narrower but still-tested IPv6
+  coverage (loopback, link-local, unique-local, IPv4-mapped). Fails
+  *closed*: a malformed IP is treated as blocked, not allowed.
+- `resolve-and-check.ts`: always resolves the hostname fresh and checks
+  the **resolved address**, never the hostname string alone — the specific
+  defense against DNS rebinding (a domain that resolves to a public IP at
+  check time and a private one moments later). Takes an injectable
+  resolver so this is fully unit-testable without real DNS/network access.
+  Documented in-code: whoever wires up the actual outbound HTTP request
+  this check gates MUST connect to the exact address just checked (DNS
+  pinning), not re-resolve a second time, or the check-then-connect gap
+  becomes its own rebinding window.
+- `scope-guard.ts` (`evaluateScopeGuard`): the full decision chain — valid
+  URL → http(s) only → not a bare localhost/loopback hostname unless
+  `localLabMode` → a matching, non-revoked, unexpired, *verified*
+  authorization exists for the exact scheme+host+port → requested tier
+  doesn't exceed the authorization's max tier → path is within an allowed
+  prefix → resolved address isn't blocked. Every branch fails closed.
+  36 tests cover each rejection reason individually, a DNS-rebinding
+  scenario, a literal-cloud-metadata-IP scenario, and the case where the
+  path/tier/host all check out.
+
+**HexStrike adapter** (`src/client/`, `src/provider.ts`):
+- `HexStrikeHttpClient` — talks to the four verified endpoints above,
+  never throws (a connection failure, timeout, or non-JSON response all
+  come back as `{ success: false, error }`, matching HexStrike's own
+  failure shape). Tested against a real local HTTP server spun up in the
+  test file, not a mocked `fetch`.
+- `HexStrikeDynamicValidationProvider` implements the
+  `DynamicValidationProvider` interface from Section 18. **Scope Guard
+  runs unconditionally at the top of `validate()`, before the
+  capability/tier check and before any HexStrike call** — this is the
+  actual code-level enforcement of "HexStrike cannot bypass Scope Guard,"
+  verified by a test asserting `runTool` is never called when Scope Guard
+  rejects.
+- Only two capabilities are offered — `http_probe` (Tier 0, via httpx) and
+  `vulnerability_scan` (Tier 1, via Nuclei) — and `ValidationRequest`'s
+  `validationType` is a closed union of just those two ids, so no
+  type-checked call site can even construct a request for a Tier 2/3
+  capability that doesn't exist. Tier 2 (admin-approval-gated) and Tier 3
+  (destructive) are not implemented at all, per Section 22.
+- `ValidationRateLimiter` — in-memory concurrency/RPS/total-request caps
+  per Section 21's conservative-defaults requirement; not yet wired into a
+  real queue (that's the worker's job once it exists).
+- Caught a real gap via its own tests: `validate()` initially had no way
+  to inject a DNS resolver into its Scope Guard call, so tests against
+  placeholder hostnames like `target.example.com` fell through to real DNS
+  resolution and failed closed (correctly, but not what the tests meant to
+  exercise). Fixed by threading an optional `resolver` through
+  `ValidationRequest` — useful in production too, not just for tests.
+
+**Test results**: 58 tests in `hexstrike-adapter` (11 IP blocklist, 8 DNS
+resolution, 16 Scope Guard end-to-end, 8 HTTP client, 9 provider, 6 rate
+limiter). Also fixed pre-existing flakiness in
+`code-intelligence`'s git-ingestor tests surfaced by running the full
+workspace concurrently: a real git subprocess occasionally holds a file
+handle past process exit long enough for Windows to throw `EPERM` on an
+immediate `rmSync`, and the default 5s vitest timeout was tight for real
+git operations under concurrent load. Fixed with a scoped
+`vitest.config.ts` (30s timeout) and `maxRetries`/`retryDelay` on the
+cleanup `rmSync` calls — not by weakening what the tests assert.
+
+Workspace total: 217 tests across 10 packages/apps, 36/36 Turborepo tasks
+green.
 
 ## Working agreement for remaining phases
 

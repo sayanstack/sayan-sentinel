@@ -65,9 +65,16 @@ This repository is being built in public, phase by phase, tracked in
   credentials are configured in this environment, so this hasn't been
   exercised against a live model — that's stated plainly, not glossed
   over.
-- 🚧 Everything else — worker orchestration, Scope Guard, HexStrike
-  adapter, GitHub App, remediation/PR workflow, frontend — is under active
-  development. Nothing not listed above should be assumed to work yet.
+- ✅ `packages/hexstrike-adapter` — Scope Guard (the deterministic SSRF/
+  DNS-rebinding/authorization boundary that sits outside the AI and gates
+  every dynamic validation request) and the HexStrike AI integration
+  itself, built against the real HexStrike REST API surface (verified by
+  inspecting actual error output from the connected `hexstrike-ai` MCP
+  server, not guessed). Only Tier 0/1 capabilities are offered; Tier 2 is
+  gated and Tier 3 destructive automation is never implemented.
+- 🚧 Everything else — worker orchestration, GitHub App, remediation/PR
+  workflow, frontend — is under active development. Nothing not listed
+  above should be assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a
