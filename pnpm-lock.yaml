@@ -56,6 +56,9 @@ importers:
       '@sayan-sentinel/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@sayan-sentinel/findings':
+        specifier: workspace:*
+        version: link:../../packages/findings
       '@sayan-sentinel/shared':
         specifier: workspace:*
         version: link:../../packages/shared

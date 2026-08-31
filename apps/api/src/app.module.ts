@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Module } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
 import { SentinelConfigModule } from "./config/sentinel-config.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { HealthModule } from "./health/health.module";
 import { RepositoriesModule } from "./repositories/repositories.module";
 
@@ -37,6 +38,7 @@ import { RepositoriesModule } from "./repositories/repositories.module";
     }),
     HealthModule,
     RepositoriesModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

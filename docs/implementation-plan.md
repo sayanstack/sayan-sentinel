@@ -721,6 +721,40 @@ Phase 13 pipeline notes).
 `apply-approved-patch`), all passing. Workspace total: 286 tests across
 15 packages/apps, 52/52 Turborepo tasks green.
 
+## Pre-Phase-14 backend additions
+
+Before building the frontend, added the two real endpoints it needs so
+there would be something genuine to call rather than mocking the API
+client:
+
+- **`GET /repositories`** — lists every repository owned by any
+  organization the caller belongs to (same tenant-scoping as the
+  existing `GET /repositories/:id`).
+- **`GET /dashboard/summary`** — computes the real Sentinel Security
+  Score and open-finding counts from actual `Finding` rows scoped to the
+  caller's organizations (mapping Prisma's uppercase enum values to
+  `@sayan-sentinel/shared`'s lowercase vocabulary), returning a perfect
+  100/zero-counts result for a user with no findings rather than an
+  error — a genuinely empty result, not a fabricated one.
+- Enabled CORS on `apps/api` (scoped to `APP_URL`) so the frontend can
+  call it from a different origin in local dev.
+
+**Manually smoke-tested against a running (but DB/Redis-less) server**
+before writing it up: `/health/live` → 200, `/repositories` with no auth
+header → 401, `/repositories` with an identity but no reachable Postgres
+→ a genuine 500 with Prisma's real connection error, never fabricated
+data. Locked both the 401 and 500 behavior in as e2e tests. While
+re-running the full verification sweep afterward, `packages/database`'s
+build failed with `EPERM: operation not permitted, rename ... query_engine-windows.dll.node`
+— traced to a `node.exe` process left running from the manual smoke test
+(the `pkill` used to stop it didn't work reliably against a
+Windows-spawned Node process from Git Bash); killed it via PowerShell's
+`Stop-Process` and the build succeeded immediately after, confirming it
+was a transient environment issue, not a code regression.
+
+9 new tests (2 repository-listing, 4 dashboard, 3 e2e). Workspace total:
+295 tests across 15 packages/apps, 52/52 Turborepo tasks green.
+
 ## Working agreement for remaining phases
 
 - Each phase lands as real, runnable code plus whatever test coverage that

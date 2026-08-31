@@ -25,4 +25,16 @@ export class RepositoriesService {
 
     return repository;
   }
+
+  /** Every repository owned by any organization `userId` is a member of — never a cross-tenant list. */
+  async listRepositoriesForUser(userId: string) {
+    const memberships = await this.membershipLookup.getMembershipsForUser(userId);
+    const organizationIds = memberships.map((m) => m.organizationId);
+    if (organizationIds.length === 0) return [];
+
+    return prisma.repository.findMany({
+      where: { organizationId: { in: organizationIds } },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
 }

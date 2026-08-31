@@ -38,3 +38,34 @@ describe("Health (e2e)", () => {
     expect(response.body.details.redis.status).toBe("down");
   }, 20_000);
 });
+
+describe("Tenant-scoped endpoints (e2e)", () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    app = moduleRef.createNestApplication();
+    await app.init();
+  }, 30_000);
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("GET /repositories rejects a request with no identity, before ever touching the database", async () => {
+    const response = await request(app.getHttpServer()).get("/repositories");
+    expect(response.status).toBe(401);
+  });
+
+  it("GET /dashboard/summary rejects a request with no identity, before ever touching the database", async () => {
+    const response = await request(app.getHttpServer()).get("/dashboard/summary");
+    expect(response.status).toBe(401);
+  });
+
+  it("GET /repositories with an identity but no reachable database fails honestly (500), never with fabricated data", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/repositories")
+      .set("x-demo-user-id", "demo@sayansentinel.local");
+    expect(response.status).toBe(500);
+  }, 15_000);
+});

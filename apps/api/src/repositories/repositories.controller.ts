@@ -18,6 +18,14 @@ import { RepositoriesService } from "./repositories.service";
 export class RepositoriesController {
   constructor(private readonly repositoriesService: RepositoriesService) {}
 
+  @Get()
+  async list(@Headers("x-demo-user-id") userId: string | undefined) {
+    if (!userId) {
+      throw new UnauthorizedException("x-demo-user-id header is required");
+    }
+    return this.repositoriesService.listRepositoriesForUser(userId);
+  }
+
   @Get(":id")
   async getOne(@Headers("x-demo-user-id") userId: string | undefined, @Param("id") id: string) {
     if (!userId) {
