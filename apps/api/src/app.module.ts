@@ -4,6 +4,7 @@ import { LoggerModule } from "nestjs-pino";
 import { SentinelConfigModule } from "./config/sentinel-config.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { HealthModule } from "./health/health.module";
+import { OrganizationsModule } from "./organizations/organizations.module";
 import { RepositoriesModule } from "./repositories/repositories.module";
 import { TargetsModule } from "./targets/targets.module";
 
@@ -38,6 +39,7 @@ import { TargetsModule } from "./targets/targets.module";
       },
     }),
     HealthModule,
+    OrganizationsModule,
     RepositoriesModule,
     TargetsModule,
     DashboardModule,

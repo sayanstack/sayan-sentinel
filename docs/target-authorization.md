@@ -63,6 +63,24 @@ Every create/verify-attempt/verify-success/verify-failure/revoke writes an
 `AuditEvent` row (`TARGET_CREATED`, `TARGET_VERIFICATION_STARTED`,
 `TARGET_VERIFIED`, `TARGET_VERIFICATION_FAILED`, `TARGET_REVOKED`).
 
+## Dashboard UI
+
+`apps/web`'s **Web Targets** page (`/targets`) is a real, working UI
+against this API — not a placeholder. A Server Component fetches the
+caller's organizations and targets (`GET /organizations`, a small new
+endpoint reusing `MembershipLookupService`, added specifically because
+the create-target form needs an organization to submit against) and
+renders the honest `ErrorBanner` state when the API is unreachable,
+matching the Repositories page's established pattern (verified in a
+real browser: with no API running, it correctly shows "Couldn't load
+targets" / "Could not reach the Sentinel API," not a crash or fake
+data). A Client Component (`TargetsView`) handles the interactive
+parts: creating a target, triggering verification, and revoking —
+including surfacing the raw verification challenge value (DNS TXT
+record or HTTP well-known body) inline for a pending target, so a real
+user can actually act on it rather than being told to "check the
+database."
+
 ## What's still NOT here
 
 - No re-verification-on-expiry scheduling (a background job that
@@ -81,8 +99,11 @@ Every create/verify-attempt/verify-success/verify-failure/revoke writes an
 
 ## Testing
 
-13 new tests in `apps/api/src/targets/`: full CRUD + cross-tenant IDOR
-regression coverage (mirroring `repositories.service.spec.ts`'s
-established pattern) for `TargetsService`, plus a real (non-mocked)
+15 tests in `apps/api/src/targets/` + `organizations/`: full CRUD +
+cross-tenant IDOR regression coverage (mirroring
+`repositories.service.spec.ts`'s established pattern) for
+`TargetsService` and `OrganizationsService`, plus a real (non-mocked)
 integration test proving a converted DB record is genuinely accepted or
-rejected by `evaluateScopeGuard`.
+rejected by `evaluateScopeGuard`. The `/targets` frontend page was
+verified in a real browser (production build + dev server), not just
+type-checked.

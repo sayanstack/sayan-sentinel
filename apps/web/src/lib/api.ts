@@ -17,11 +17,23 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string): Promise<T> {
+interface ApiFetchOptions {
+  method?: "GET" | "POST";
+  body?: unknown;
+  organizationId?: string;
+}
+
+async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
-      headers: { "x-demo-user-id": DEMO_USER_ID },
+      method: options.method ?? "GET",
+      headers: {
+        "x-demo-user-id": DEMO_USER_ID,
+        ...(options.organizationId ? { "x-demo-organization-id": options.organizationId } : {}),
+        ...(options.body ? { "content-type": "application/json" } : {}),
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
       cache: "no-store",
     });
   } catch {
@@ -65,4 +77,68 @@ export interface RepositorySummary {
 
 export function listRepositories(): Promise<RepositorySummary[]> {
   return apiFetch<RepositorySummary[]>("/repositories");
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export function listOrganizations(): Promise<Organization[]> {
+  return apiFetch<Organization[]>("/organizations");
+}
+
+export type VerificationMethod = "DNS_TXT" | "HTTP_WELL_KNOWN";
+
+export interface TargetAuthorizationSummary {
+  id: string;
+  organizationId: string;
+  scheme: "http" | "https";
+  host: string;
+  port: number;
+  allowedPathPrefixes: string[];
+  verificationMethod: VerificationMethod;
+  verificationChallenge: string | null;
+  verifiedAt: string | null;
+  expiresAt: string;
+  revokedAt: string | null;
+  maxTier: number;
+  createdAt: string;
+}
+
+export interface CreateTargetInput {
+  scheme: "http" | "https";
+  host: string;
+  port: number;
+  verificationMethod: VerificationMethod;
+  allowedPathPrefixes?: string[];
+  expiresInDays?: number;
+}
+
+export function listTargets(): Promise<TargetAuthorizationSummary[]> {
+  return apiFetch<TargetAuthorizationSummary[]>("/targets");
+}
+
+export function createTarget(
+  organizationId: string,
+  input: CreateTargetInput,
+): Promise<TargetAuthorizationSummary> {
+  return apiFetch<TargetAuthorizationSummary>("/targets", {
+    method: "POST",
+    body: input,
+    organizationId,
+  });
+}
+
+export interface VerifyTargetResult extends TargetAuthorizationSummary {
+  verificationOutcome: { verified: boolean; method: string; detail: string };
+}
+
+export function verifyTarget(id: string): Promise<VerifyTargetResult> {
+  return apiFetch<VerifyTargetResult>(`/targets/${id}/verify`, { method: "POST" });
+}
+
+export function revokeTarget(id: string): Promise<TargetAuthorizationSummary> {
+  return apiFetch<TargetAuthorizationSummary>(`/targets/${id}/revoke`, { method: "POST" });
 }

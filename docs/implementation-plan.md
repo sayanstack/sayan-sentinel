@@ -36,6 +36,30 @@ Status legend: `not started` · `in progress` · `done`
 | 25    | Web Discovery Engine: bounded crawler (robots.txt, sitemap.xml, forms)                      | done — see notes below                                                   |
 | 26    | API Security Engine: OpenAPI import + endpoint inventory + SENTINEL-API-1xx                 | done — see notes below                                                   |
 | 27    | Full Stack Scan orchestration + worker pipeline wiring                                      | done — see notes below                                                   |
+| 28    | Web Targets dashboard UI (real, browser-verified)                                           | done — see notes below                                                   |
+
+## Phase 28 — Web Targets dashboard UI
+
+The first dashboard page connected to this run's new backend work.
+Full writeup in [docs/target-authorization.md](target-authorization.md).
+
+**Built**: `apps/web`'s `/targets` page — a Server Component that fetches
+organizations and targets and renders the honest `ErrorBanner` state when
+the API is unreachable (verified in a real browser: correctly showed
+"Couldn't load targets" with no API running, not a crash), plus a Client
+Component (`TargetsView`) for creating/verifying/revoking a target,
+including surfacing the raw DNS TXT/HTTP well-known challenge value
+inline for a pending target. Added `GET /organizations` to `apps/api`
+(a small new endpoint reusing the existing `MembershipLookupService`)
+since the create-target form needs an organization to submit against —
+2 new tests. Activated the dev server and drove the page in the actual
+Browser pane (not just `tsc`/build) before calling this done, per this
+session's own UI-verification standard; also ran a real production
+`next build` to catch build-time errors a dev server wouldn't surface.
+
+**Explicitly deferred**: no Scan History page, no Full Stack Scan result
+view, no Application Graph, no Attack Surface page — this is one real
+page, not a dashboard overhaul.
 
 ## Phase 27 — Full Stack Scan orchestration
 
