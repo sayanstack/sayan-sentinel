@@ -57,10 +57,17 @@ This repository is being built in public, phase by phase, tracked in
 - ✅ Finding correlation (`correlateFindings`) and the **Sentinel Security
   Score** (`computeSecurityScore`) — both fully documented, deterministic
   formulas in `packages/findings`, no random or hard-coded numbers.
-- 🚧 Everything else — worker orchestration, AI engine, Scope Guard,
-  HexStrike adapter, GitHub App, remediation/PR workflow, frontend — is
-  under active development. Nothing not listed above should be assumed to
-  work yet.
+- ✅ `packages/ai-engine` — provider abstraction (Anthropic/OpenAI/local),
+  schema-validated structured output (the model's raw text is never
+  trusted directly), and the Section 14 prompt-injection defenses: every
+  piece of repository content is wrapped in explicit untrusted-data
+  markers and pattern-redacted for secrets before it's ever sent. No AI
+  credentials are configured in this environment, so this hasn't been
+  exercised against a live model — that's stated plainly, not glossed
+  over.
+- 🚧 Everything else — worker orchestration, Scope Guard, HexStrike
+  adapter, GitHub App, remediation/PR workflow, frontend — is under active
+  development. Nothing not listed above should be assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

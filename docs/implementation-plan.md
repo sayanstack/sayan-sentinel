@@ -16,7 +16,7 @@ Status legend: `not started` · `in progress` · `done`
 | 6 | Repository ingestion + code intelligence (AST graph) | done |
 | 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | done |
 | 8 | Findings model + correlation engine | done |
-| 9 | AI engine (provider abstraction, schema-validated reasoning) | not started |
+| 9 | AI engine (provider abstraction, schema-validated reasoning) | done |
 | 10 | Scope Guard | not started |
 | 11 | HexStrike AI adapter (real interface) | not started |
 | 12 | GitHub App integration | not started |
@@ -329,6 +329,67 @@ Built into `packages/findings`:
 **Test results**: 28 tests in `packages/findings` (11 correlation, 10
 scoring, 7 fingerprint). Workspace total: 115 tests across 8 packages/apps,
 28/28 Turborepo tasks green.
+
+## Phase 9 completion notes
+
+Built `packages/ai-engine`. Verified current provider SDK usage via each
+project's own docs (Anthropic `messages.create`, OpenAI's current
+`responses.create` Responses API for the hosted provider vs.
+`chat.completions.create` for local OpenAI-compatible servers, which don't
+implement the newer Responses surface) rather than assuming — this
+environment has no AI credentials configured, so nothing here has been
+exercised against a live model; that's stated plainly rather than implied
+otherwise.
+
+- **Provider abstraction**: `AIProvider` interface + `AnthropicProvider`,
+  `OpenAIProvider`, `LocalOpenAICompatibleProvider`, and
+  `createProviderFromConfig()` which returns `null` — never a fake or
+  half-configured provider — when `AI_PROVIDER` is `"none"` or its
+  matching key/URL is absent.
+- **Prompt-injection defense (Section 14, "essential")**:
+  `wrapUntrustedContent()` puts explicit BEGIN/END markers and an explicit
+  "this is data, not instructions" warning around every piece of
+  repository-derived content; `buildSystemPreamble()` keeps Sentinel's own
+  task instructions clearly separated from and prioritized over anything
+  wrapped as untrusted. `detectPromptInjectionAttempt()` is a secondary,
+  audit-only heuristic layer — flagged and returned to the caller via
+  `injectionWarnings`, never used to block or alter the call, because the
+  real defense is architectural: the model's output is only ever
+  schema-validated structured data, never a command, and nothing it says
+  triggers a tool call directly (Scope Guard, Phase 10, sits outside the
+  model entirely for anything touching a real system).
+- **Secret redaction before every AI call**: `redactSecretsInText()`
+  pattern-matches and masks AWS keys, private-key blocks, GitHub tokens,
+  JWTs, and generic `key: "value"` secrets in any untrusted content block
+  before it's wrapped and sent. Caught and fixed a real bug in its own
+  test: the generic key=value pattern could re-match the substring
+  `token` inside an already-redacted `github_token` field (both sides of
+  the underscore are word characters, so naively there's no boundary) —
+  fixed with an explicit `\b` word-boundary around the keyword.
+- **Schema-validated structured output**: `completeStructured()` never
+  returns the model's raw text — only the result of parsing it as JSON and
+  validating it against a caller-supplied zod schema. An invalid response
+  triggers a corrective follow-up turn (bounded retries); exhausting all
+  attempts throws `AISchemaValidationError` rather than returning
+  unvalidated data. Verified against a `FakeProvider` test double proving
+  the retry-on-bad-JSON path, retry-on-schema-mismatch path, markdown
+  code-fence stripping, and the exhausted-retries failure path all work —
+  plus that untrusted content really does arrive at the provider wrapped
+  in the untrusted markers and with any embedded secret already redacted.
+- **Cost tracking**: `estimateCostUsd()` (documented-approximate per-model
+  pricing table, safe fallback for unknown models) and `BudgetGuard`
+  enforcing `AI_PER_SCAN_BUDGET_USD`/`AI_MONTHLY_BUDGET_USD` — a call whose
+  estimated cost would exceed either budget is rejected before it's made,
+  never after.
+- One demonstration end-to-end schema/prompt pair (`findingAnalysisSchema`
+  + `buildFindingAnalysisPrompt`) showing the false-positive-reduction /
+  remediation-suggestion use case from Section 13 wired together with all
+  of the above.
+
+**Test results**: 44 new tests in `ai-engine` (14 injection-detector, 7
+secret-redaction, 8 structured-client, 5 budget-guard, 5 pricing, 5
+factory), all passing. Workspace total: 159 tests across 9 packages/apps,
+32/32 Turborepo tasks green.
 
 ## Working agreement for remaining phases
 
