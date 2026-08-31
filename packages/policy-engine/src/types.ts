@@ -1,12 +1,27 @@
 import type { SensitivityCategory } from "@sayan-sentinel/github";
-import type { ConfidenceLevel, FindingSource, FindingStatus, Severity } from "@sayan-sentinel/shared";
+import type {
+  ConfidenceLevel,
+  FindingSource,
+  FindingStatus,
+  Severity,
+} from "@sayan-sentinel/shared";
 
 export type PolicyRule =
   | { id: string; enabled: boolean; type: "fail_on_severity"; minSeverity: Severity }
   | { id: string; enabled: boolean; type: "fail_on_confirmed_severity"; minSeverity: Severity }
   | { id: string; enabled: boolean; type: "block_new_secrets" }
-  | { id: string; enabled: boolean; type: "block_dependency_vulnerabilities"; minSeverity: Severity }
-  | { id: string; enabled: boolean; type: "require_review_for_sensitive_changes"; categories: SensitivityCategory[] };
+  | {
+      id: string;
+      enabled: boolean;
+      type: "block_dependency_vulnerabilities";
+      minSeverity: Severity;
+    }
+  | {
+      id: string;
+      enabled: boolean;
+      type: "require_review_for_sensitive_changes";
+      categories: SensitivityCategory[];
+    };
 
 export interface PolicyEvaluationFindingInput {
   severity: Severity;

@@ -1,5 +1,10 @@
 import OpenAI from "openai";
-import type { AICompletionCallOptions, AICompletionRequest, AICompletionResponse, AIProvider } from "../provider";
+import type {
+  AICompletionCallOptions,
+  AICompletionRequest,
+  AICompletionResponse,
+  AIProvider,
+} from "../provider";
 
 /** Uses OpenAI's current Responses API (`responses.create`), not the legacy Chat Completions API. */
 export class OpenAIProvider implements AIProvider {

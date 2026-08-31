@@ -7,7 +7,9 @@ const NOW = new Date("2026-08-31T00:00:00Z");
 const FUTURE = new Date("2026-12-31T00:00:00Z");
 const publicResolver = async () => ["93.184.216.34"];
 
-function authorization(overrides: Partial<TargetAuthorizationRecord> = {}): TargetAuthorizationRecord {
+function authorization(
+  overrides: Partial<TargetAuthorizationRecord> = {},
+): TargetAuthorizationRecord {
   return {
     id: "auth-1",
     scheme: "https",
@@ -131,7 +133,10 @@ describe("HexStrikeDynamicValidationProvider", () => {
         resolver: publicResolver,
       });
 
-      expect(client.runTool).toHaveBeenCalledWith("nuclei", expect.objectContaining({ target: "https://target.example.com/" }));
+      expect(client.runTool).toHaveBeenCalledWith(
+        "nuclei",
+        expect.objectContaining({ target: "https://target.example.com/" }),
+      );
     });
 
     it("returns 'failed' — never a fabricated success — when the HexStrike call itself fails", async () => {

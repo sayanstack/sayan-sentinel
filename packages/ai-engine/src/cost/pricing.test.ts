@@ -24,8 +24,14 @@ describe("estimateCostUsd", () => {
   });
 
   it("prices output tokens higher than input tokens for a typical model", () => {
-    const inputCost = estimateCostUsd("claude-sonnet-5", { inputTokens: 1_000_000, outputTokens: 0 });
-    const outputCost = estimateCostUsd("claude-sonnet-5", { inputTokens: 0, outputTokens: 1_000_000 });
+    const inputCost = estimateCostUsd("claude-sonnet-5", {
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+    });
+    const outputCost = estimateCostUsd("claude-sonnet-5", {
+      inputTokens: 0,
+      outputTokens: 1_000_000,
+    });
     expect(outputCost).toBeGreaterThan(inputCost);
   });
 });

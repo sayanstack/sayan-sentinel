@@ -25,7 +25,9 @@ export interface EvaluateScopeGuardOptions {
  * Location header before following it, and abort if it comes back
  * disallowed — a single check against the original URL is not sufficient.
  */
-export async function evaluateScopeGuard(options: EvaluateScopeGuardOptions): Promise<ScopeDecision> {
+export async function evaluateScopeGuard(
+  options: EvaluateScopeGuardOptions,
+): Promise<ScopeDecision> {
   const now = options.now ?? new Date();
 
   let parsed: URL;
@@ -42,7 +44,10 @@ export async function evaluateScopeGuard(options: EvaluateScopeGuardOptions): Pr
   const hostname = parsed.hostname.toLowerCase();
   const port = parsed.port ? Number(parsed.port) : scheme === "https" ? 443 : 80;
 
-  if (!options.localLabMode && (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1")) {
+  if (
+    !options.localLabMode &&
+    (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1")
+  ) {
     return { allowed: false, reason: "blocked_hostname", detail: hostname };
   }
 
@@ -53,10 +58,18 @@ export async function evaluateScopeGuard(options: EvaluateScopeGuardOptions): Pr
     return { allowed: false, reason: "no_matching_authorization" };
   }
   if (matchedAuthorization.revokedAt) {
-    return { allowed: false, reason: "authorization_revoked", matchedAuthorizationId: matchedAuthorization.id };
+    return {
+      allowed: false,
+      reason: "authorization_revoked",
+      matchedAuthorizationId: matchedAuthorization.id,
+    };
   }
   if (matchedAuthorization.expiresAt.getTime() <= now.getTime()) {
-    return { allowed: false, reason: "authorization_expired", matchedAuthorizationId: matchedAuthorization.id };
+    return {
+      allowed: false,
+      reason: "authorization_expired",
+      matchedAuthorizationId: matchedAuthorization.id,
+    };
   }
   if (!matchedAuthorization.verifiedAt) {
     return {

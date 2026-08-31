@@ -9,7 +9,11 @@ import type { CodeGraphBuilderContext, EdgeKind } from "../types";
  * AUTHORIZES. This is a naming heuristic, not a semantic guarantee — it's
  * meant to seed the code graph for a reviewer, not to certify correctness.
  */
-export function extractGuards(ctx: CodeGraphBuilderContext, sourceFile: SourceFile, filePath: string): void {
+export function extractGuards(
+  ctx: CodeGraphBuilderContext,
+  sourceFile: SourceFile,
+  filePath: string,
+): void {
   for (const cls of sourceFile.getClasses()) {
     for (const method of cls.getMethods()) {
       const decorator = method.getDecorator("UseGuards");

@@ -26,19 +26,15 @@ describe("Health (e2e)", () => {
     expect(response.body.status).toBe("ok");
   });
 
-  it(
-    "GET /health/ready honestly reports down dependencies instead of faking success",
-    async () => {
-      // No Postgres/Redis is running in this test environment, so the
-      // endpoint must report 503 with each dependency explicitly down —
-      // never a fabricated 200.
-      const response = await request(app.getHttpServer()).get("/health/ready");
+  it("GET /health/ready honestly reports down dependencies instead of faking success", async () => {
+    // No Postgres/Redis is running in this test environment, so the
+    // endpoint must report 503 with each dependency explicitly down —
+    // never a fabricated 200.
+    const response = await request(app.getHttpServer()).get("/health/ready");
 
-      expect(response.status).toBe(503);
-      expect(response.body.status).toBe("error");
-      expect(response.body.details.database.status).toBe("down");
-      expect(response.body.details.redis.status).toBe("down");
-    },
-    20_000,
-  );
+    expect(response.status).toBe(503);
+    expect(response.body.status).toBe("error");
+    expect(response.body.details.database.status).toBe("down");
+    expect(response.body.details.redis.status).toBe("down");
+  }, 20_000);
 });

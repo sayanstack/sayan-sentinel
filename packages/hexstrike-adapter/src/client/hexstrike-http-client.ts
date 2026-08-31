@@ -71,7 +71,10 @@ export class HexStrikeHttpClient implements IHexStrikeClient {
     body?: Record<string, unknown>,
   ): Promise<HexStrikeToolResult> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    );
 
     try {
       const response = await fetch(`${this.options.baseUrl}${path}`, {
@@ -86,7 +89,10 @@ export class HexStrikeHttpClient implements IHexStrikeClient {
       try {
         parsed = text ? JSON.parse(text) : {};
       } catch {
-        return { success: false, error: `Non-JSON response from HexStrike server: ${text.slice(0, 500)}` };
+        return {
+          success: false,
+          error: `Non-JSON response from HexStrike server: ${text.slice(0, 500)}`,
+        };
       }
 
       if (typeof parsed !== "object" || parsed === null) {

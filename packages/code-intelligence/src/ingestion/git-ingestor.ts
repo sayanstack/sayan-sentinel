@@ -72,7 +72,12 @@ async function runGit(args: string[], options: RunGitOptions): Promise<void> {
   } catch (error) {
     const execError = error as { stderr?: string; killed?: boolean; signal?: string };
     const timedOut = Boolean(execError.killed && execError.signal === "SIGTERM");
-    throw new GitCommandError(args, execError.stderr ?? String(error), timedOut, options.repositoryUrl);
+    throw new GitCommandError(
+      args,
+      execError.stderr ?? String(error),
+      timedOut,
+      options.repositoryUrl,
+    );
   }
 }
 
@@ -88,7 +93,9 @@ async function runGit(args: string[], options: RunGitOptions): Promise<void> {
  * branch history. If the server refuses a direct SHA fetch, falls back to
  * a shallow fetch of `branch` and checks out the SHA from there.
  */
-export async function cloneRepositoryAtCommit(options: CloneCommitOptions): Promise<CloneCommitResult> {
+export async function cloneRepositoryAtCommit(
+  options: CloneCommitOptions,
+): Promise<CloneCommitResult> {
   const policy = resolveIngestionPolicy(options.policy);
   const destinationDir = path.resolve(options.destinationDir);
   await fsp.mkdir(destinationDir, { recursive: true });
@@ -110,11 +117,24 @@ export async function cloneRepositoryAtCommit(options: CloneCommitOptions): Prom
 
   try {
     await runGit(["init", "--quiet", destinationDir], runOptions);
-    await runGit([...configArgs, ...repo, "remote", "add", "origin", options.repositoryUrl], runOptions);
+    await runGit(
+      [...configArgs, ...repo, "remote", "add", "origin", options.repositoryUrl],
+      runOptions,
+    );
 
     try {
       await runGit(
-        [...configArgs, ...repo, "fetch", "--quiet", "--depth", "1", "--filter=blob:none", "origin", options.commitSha],
+        [
+          ...configArgs,
+          ...repo,
+          "fetch",
+          "--quiet",
+          "--depth",
+          "1",
+          "--filter=blob:none",
+          "origin",
+          options.commitSha,
+        ],
         runOptions,
       );
     } catch (directFetchError) {
@@ -137,7 +157,10 @@ export async function cloneRepositoryAtCommit(options: CloneCommitOptions): Prom
 
     await runGit([...configArgs, ...repo, "checkout", "--quiet", "FETCH_HEAD"], runOptions);
 
-    const headSha = await execFileAsync("git", [...repo, "rev-parse", "HEAD"], { env, windowsHide: true });
+    const headSha = await execFileAsync("git", [...repo, "rev-parse", "HEAD"], {
+      env,
+      windowsHide: true,
+    });
     const resolvedSha = headSha.stdout.trim();
     if (options.branch && resolvedSha !== options.commitSha) {
       // Fallback path landed on the branch tip, not the requested commit —

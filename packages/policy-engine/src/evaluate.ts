@@ -7,8 +7,19 @@ import type {
   PolicyViolation,
 } from "./types";
 
-const SEVERITY_RANK: Record<Severity, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
-const OPEN_STATUSES: PolicyEvaluationFindingInput["status"][] = ["open", "confirmed", "likely", "needs_review"];
+const SEVERITY_RANK: Record<Severity, number> = {
+  info: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
+const OPEN_STATUSES: PolicyEvaluationFindingInput["status"][] = [
+  "open",
+  "confirmed",
+  "likely",
+  "needs_review",
+];
 
 function isOpen(f: PolicyEvaluationFindingInput): boolean {
   return OPEN_STATUSES.includes(f.status);
@@ -25,7 +36,10 @@ function atOrAbove(severity: Severity, min: Severity): boolean {
  * stopping at the first failure, so a policy-gate consumer can show the
  * complete picture at once.
  */
-export function evaluatePolicy(rules: PolicyRule[], input: PolicyEvaluationInput): PolicyEvaluationResult {
+export function evaluatePolicy(
+  rules: PolicyRule[],
+  input: PolicyEvaluationInput,
+): PolicyEvaluationResult {
   const violations: PolicyViolation[] = [];
 
   for (const rule of rules) {
@@ -40,7 +54,9 @@ export function evaluatePolicy(rules: PolicyRule[], input: PolicyEvaluationInput
 function evaluateRule(rule: PolicyRule, input: PolicyEvaluationInput): PolicyViolation | null {
   switch (rule.type) {
     case "fail_on_severity": {
-      const offenders = input.findings.filter((f) => isOpen(f) && atOrAbove(f.severity, rule.minSeverity));
+      const offenders = input.findings.filter(
+        (f) => isOpen(f) && atOrAbove(f.severity, rule.minSeverity),
+      );
       if (offenders.length === 0) return null;
       return {
         ruleId: rule.id,
@@ -51,7 +67,9 @@ function evaluateRule(rule: PolicyRule, input: PolicyEvaluationInput): PolicyVio
     }
 
     case "fail_on_confirmed_severity": {
-      const offenders = input.findings.filter((f) => f.status === "confirmed" && atOrAbove(f.severity, rule.minSeverity));
+      const offenders = input.findings.filter(
+        (f) => f.status === "confirmed" && atOrAbove(f.severity, rule.minSeverity),
+      );
       if (offenders.length === 0) return null;
       return {
         ruleId: rule.id,
@@ -62,7 +80,9 @@ function evaluateRule(rule: PolicyRule, input: PolicyEvaluationInput): PolicyVio
     }
 
     case "block_new_secrets": {
-      const offenders = input.findings.filter((f) => f.isNew && isOpen(f) && f.primarySource === "secret_detection");
+      const offenders = input.findings.filter(
+        (f) => f.isNew && isOpen(f) && f.primarySource === "secret_detection",
+      );
       if (offenders.length === 0) return null;
       return {
         ruleId: rule.id,
@@ -74,7 +94,10 @@ function evaluateRule(rule: PolicyRule, input: PolicyEvaluationInput): PolicyVio
 
     case "block_dependency_vulnerabilities": {
       const offenders = input.findings.filter(
-        (f) => isOpen(f) && f.primarySource === "dependency_analysis" && atOrAbove(f.severity, rule.minSeverity),
+        (f) =>
+          isOpen(f) &&
+          f.primarySource === "dependency_analysis" &&
+          atOrAbove(f.severity, rule.minSeverity),
       );
       if (offenders.length === 0) return null;
       return {

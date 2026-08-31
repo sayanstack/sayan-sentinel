@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+.git
+.env
+.env.*
+!.env.example
+examples/vulnerable-demo-app/node_modules

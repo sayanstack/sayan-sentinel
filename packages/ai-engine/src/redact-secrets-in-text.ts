@@ -23,7 +23,8 @@ const SECRET_PATTERNS: SecretPattern[] = [
     // \b around the keyword so "token" doesn't spuriously match inside an
     // already-handled identifier like "github_token" (both are \w chars,
     // so no boundary exists between them — this pattern correctly skips it).
-    pattern: /\b(?<keyName>api[_-]?key|secret|password|token)\b\s*[:=]\s*["'](?<value>[^"'\s]{8,})["']/gi,
+    pattern:
+      /\b(?<keyName>api[_-]?key|secret|password|token)\b\s*[:=]\s*["'](?<value>[^"'\s]{8,})["']/gi,
     label: "generic-key-value-secret",
   },
 ];

@@ -13,7 +13,9 @@ export function blockNewSecrets(id = "block-new-secrets"): PolicyRule {
   return { id, enabled: true, type: "block_new_secrets" };
 }
 
-export function blockCriticalDependencyVulnerabilities(id = "block-critical-dependency-vulnerabilities"): PolicyRule {
+export function blockCriticalDependencyVulnerabilities(
+  id = "block-critical-dependency-vulnerabilities",
+): PolicyRule {
   return { id, enabled: true, type: "block_dependency_vulnerabilities", minSeverity: "critical" };
 }
 

@@ -6,7 +6,7 @@ Scope Guard (the deterministic authorization/SSRF boundary for dynamic validatio
 
 ## Scope Guard (`src/scope-guard/`)
 
-The security boundary Section 19-20 requires to sit *outside* the AI and
+The security boundary Section 19-20 requires to sit _outside_ the AI and
 gate every dynamic-validation request:
 
 - Blocks localhost/private/link-local/cloud-metadata addresses by default;
@@ -14,7 +14,7 @@ gate every dynamic-validation request:
   doesn't decide what may run against local targets — that's enforced by
   the caller only ever setting `localLabMode: true` against the bundled
   demo fixture.
-- Re-resolves every hostname at check time and checks the *resolved*
+- Re-resolves every hostname at check time and checks the _resolved_
   address, not the hostname string — the specific defense against DNS
   rebinding.
 - Requires a matching, non-revoked, unexpired, **verified** authorization

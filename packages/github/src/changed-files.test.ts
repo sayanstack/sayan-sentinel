@@ -38,7 +38,10 @@ describe("classifyChangedFile", () => {
 
   it("classifies an external HTTP call found in the patch content, independent of file path", () => {
     const result = classifyChangedFile(
-      file({ path: "src/utils/helpers.ts", patch: '+  const res = await fetch("https://api.example.com");' }),
+      file({
+        path: "src/utils/helpers.ts",
+        patch: '+  const res = await fetch("https://api.example.com");',
+      }),
     );
     expect(result.categories).toContain("external_requests");
   });
@@ -63,12 +66,18 @@ describe("classifyChangedFile", () => {
 
 describe("classifyChangedFiles", () => {
   it("reports hasSensitiveChanges: false when nothing sensitive changed", () => {
-    const report = classifyChangedFiles([file({ path: "README.md" }), file({ path: "src/Button.tsx" })]);
+    const report = classifyChangedFiles([
+      file({ path: "README.md" }),
+      file({ path: "src/Button.tsx" }),
+    ]);
     expect(report.hasSensitiveChanges).toBe(false);
   });
 
   it("reports hasSensitiveChanges: true when at least one file is sensitive", () => {
-    const report = classifyChangedFiles([file({ path: "README.md" }), file({ path: "src/auth/login.ts" })]);
+    const report = classifyChangedFiles([
+      file({ path: "README.md" }),
+      file({ path: "src/auth/login.ts" }),
+    ]);
     expect(report.hasSensitiveChanges).toBe(true);
   });
 

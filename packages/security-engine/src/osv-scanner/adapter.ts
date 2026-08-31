@@ -26,9 +26,13 @@ export class OsvScannerAdapter implements ScannerAdapter {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const startedAt = Date.now();
 
-    const outcome = await runScannerProcess(this.bin, ["--format", "json", "--recursive", path.resolve(targetDir)], {
-      timeoutMs,
-    });
+    const outcome = await runScannerProcess(
+      this.bin,
+      ["--format", "json", "--recursive", path.resolve(targetDir)],
+      {
+        timeoutMs,
+      },
+    );
 
     const durationMs = Date.now() - startedAt;
 
@@ -36,7 +40,11 @@ export class OsvScannerAdapter implements ScannerAdapter {
       return { status: "unavailable", reason: `"${this.bin}" is not installed or not on PATH` };
     }
     if (outcome.kind === "timeout") {
-      return { status: "failed", error: `osv-scanner scan timed out after ${timeoutMs}ms`, durationMs };
+      return {
+        status: "failed",
+        error: `osv-scanner scan timed out after ${timeoutMs}ms`,
+        durationMs,
+      };
     }
     if (outcome.kind === "error") {
       return { status: "failed", error: outcome.message, durationMs };

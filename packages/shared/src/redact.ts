@@ -34,7 +34,8 @@ export function maskSecretValue(secret: string): string {
   return `${secret.slice(0, visibleChars)}${"*".repeat(maskedLength)}${secret.slice(-visibleChars)}`;
 }
 
-const SENSITIVE_KEY_PATTERN = /(password|secret|token|apikey|api_key|privatekey|private_key|authorization)/i;
+const SENSITIVE_KEY_PATTERN =
+  /(password|secret|token|apikey|api_key|privatekey|private_key|authorization)/i;
 
 /**
  * Recursively redacts values on keys that look secret-shaped. Used as a

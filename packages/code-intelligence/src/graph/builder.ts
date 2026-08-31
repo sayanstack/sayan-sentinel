@@ -57,7 +57,10 @@ function buildFromProject(project: Project, rootDir?: string): CodeGraph {
 export function buildCodeGraphFromSources(sources: Record<string, string>): CodeGraph {
   const project = new Project({ useInMemoryFileSystem: true, skipAddingFilesFromTsConfig: true });
   for (const [relativePath, content] of Object.entries(sources)) {
-    project.createSourceFile(relativePath.startsWith("/") ? relativePath : `/${relativePath}`, content);
+    project.createSourceFile(
+      relativePath.startsWith("/") ? relativePath : `/${relativePath}`,
+      content,
+    );
   }
   return buildFromProject(project);
 }
@@ -74,7 +77,9 @@ export interface BuildCodeGraphFromDirectoryOptions {
  * rather than letting ts-morph glob the directory itself, so exclusion/size
  * limits stay enforced in exactly one place.
  */
-export function buildCodeGraphFromDirectory(options: BuildCodeGraphFromDirectoryOptions): CodeGraph {
+export function buildCodeGraphFromDirectory(
+  options: BuildCodeGraphFromDirectoryOptions,
+): CodeGraph {
   const project = new Project({ skipAddingFilesFromTsConfig: true });
 
   for (const relativePath of options.filePaths) {

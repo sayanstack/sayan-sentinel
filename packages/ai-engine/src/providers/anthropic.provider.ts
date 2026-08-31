@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AICompletionCallOptions, AICompletionRequest, AICompletionResponse, AIProvider } from "../provider";
+import type {
+  AICompletionCallOptions,
+  AICompletionRequest,
+  AICompletionResponse,
+  AIProvider,
+} from "../provider";
 
 export class AnthropicProvider implements AIProvider {
   readonly name = "anthropic";
@@ -31,7 +36,10 @@ export class AnthropicProvider implements AIProvider {
 
     return {
       text,
-      usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens },
+      usage: {
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+      },
       model: response.model,
     };
   }

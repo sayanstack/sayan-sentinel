@@ -19,7 +19,7 @@ export class AIBudgetExceededError extends Error {
 export class AIProviderNotConfiguredError extends Error {
   constructor() {
     super(
-      "No AI provider is configured (AI_PROVIDER is \"none\" or its matching API key/base URL is missing). " +
+      'No AI provider is configured (AI_PROVIDER is "none" or its matching API key/base URL is missing). ' +
         "Deterministic analysis continues without it.",
     );
     this.name = "AIProviderNotConfiguredError";

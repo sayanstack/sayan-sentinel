@@ -74,7 +74,11 @@ describe("correlateFindings", () => {
 
   it("caps escalated confidence at 'confirmed' rather than overflowing", () => {
     const a = draft({ primarySource: "static_analysis", confidence: "confirmed", lineStart: 10 });
-    const b = draft({ primarySource: "dynamic_validation", confidence: "confirmed", lineStart: 10 });
+    const b = draft({
+      primarySource: "dynamic_validation",
+      confidence: "confirmed",
+      lineStart: 10,
+    });
 
     const [merged] = correlateFindings([a, b]);
     expect(merged?.confidence).toBe("confirmed");
@@ -137,7 +141,9 @@ describe("correlateFindings", () => {
       draft({ primarySource: "static_analysis", lineStart: 10 }),
       draft({ primarySource: "dynamic_validation", lineStart: 10 }),
     ]);
-    const withOnlyStatic = correlateFindings([draft({ primarySource: "static_analysis", lineStart: 10 })]);
+    const withOnlyStatic = correlateFindings([
+      draft({ primarySource: "static_analysis", lineStart: 10 }),
+    ]);
 
     // Both anchor on the same file/category/line, so the correlation
     // fingerprint should match even though the detector set differs —

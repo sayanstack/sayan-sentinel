@@ -31,13 +31,19 @@ export class ValidationRateLimiter {
       };
     }
     if (this.inFlight >= this.policy.maxConcurrent) {
-      return { allowed: false, reason: `maximum concurrency of ${this.policy.maxConcurrent} reached` };
+      return {
+        allowed: false,
+        reason: `maximum concurrency of ${this.policy.maxConcurrent} reached`,
+      };
     }
 
     const oneSecondAgo = now - 1000;
     const recentCount = this.recentRequestTimestamps.filter((t) => t > oneSecondAgo).length;
     if (recentCount >= this.policy.maxRequestsPerSecond) {
-      return { allowed: false, reason: `rate limit of ${this.policy.maxRequestsPerSecond} requests/second reached` };
+      return {
+        allowed: false,
+        reason: `rate limit of ${this.policy.maxRequestsPerSecond} requests/second reached`,
+      };
     }
 
     return { allowed: true };

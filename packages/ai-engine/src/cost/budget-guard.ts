@@ -26,13 +26,19 @@ export class BudgetGuard {
   checkAndReserve(scanId: string, estimatedCostUsd: number): SpendCheckResult {
     const currentScanSpend = this.scanSpend.get(scanId) ?? 0;
 
-    if (this.options.perScanBudgetUsd > 0 && currentScanSpend + estimatedCostUsd > this.options.perScanBudgetUsd) {
+    if (
+      this.options.perScanBudgetUsd > 0 &&
+      currentScanSpend + estimatedCostUsd > this.options.perScanBudgetUsd
+    ) {
       return {
         allowed: false,
         reason: `per-scan AI budget of $${this.options.perScanBudgetUsd.toFixed(2)} would be exceeded`,
       };
     }
-    if (this.options.monthlyBudgetUsd > 0 && this.monthlySpendUsd + estimatedCostUsd > this.options.monthlyBudgetUsd) {
+    if (
+      this.options.monthlyBudgetUsd > 0 &&
+      this.monthlySpendUsd + estimatedCostUsd > this.options.monthlyBudgetUsd
+    ) {
       return {
         allowed: false,
         reason: `monthly AI budget of $${this.options.monthlyBudgetUsd.toFixed(2)} would be exceeded`,

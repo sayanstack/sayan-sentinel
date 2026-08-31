@@ -30,7 +30,10 @@ export class InMemoryDeliveryStore implements DeliveryStore {
  * call for a given id, so a second concurrent/retried call for the same
  * id is correctly reported as a duplicate.
  */
-export async function isDuplicateDelivery(store: DeliveryStore, deliveryId: string): Promise<boolean> {
+export async function isDuplicateDelivery(
+  store: DeliveryStore,
+  deliveryId: string,
+): Promise<boolean> {
   if (await store.hasSeen(deliveryId)) {
     return true;
   }

@@ -109,7 +109,8 @@ export async function completeStructured<T>(
       messages.push({ role: "assistant", content: response.text });
       messages.push({
         role: "user",
-        content: "Your last response was not valid JSON. Respond again with ONLY valid JSON, no prose before or after it.",
+        content:
+          "Your last response was not valid JSON. Respond again with ONLY valid JSON, no prose before or after it.",
       });
       continue;
     }

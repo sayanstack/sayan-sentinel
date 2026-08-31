@@ -35,5 +35,8 @@ export interface AICompletionCallOptions {
  */
 export interface AIProvider {
   readonly name: string;
-  complete(request: AICompletionRequest, options?: AICompletionCallOptions): Promise<AICompletionResponse>;
+  complete(
+    request: AICompletionRequest,
+    options?: AICompletionCallOptions,
+  ): Promise<AICompletionResponse>;
 }

@@ -51,7 +51,10 @@ describe("HexStrikeHttpClient", () => {
     await client.runTool("nuclei", { target: "https://example.com", severity: "high" });
     expect(lastRequest.method).toBe("POST");
     expect(lastRequest.url).toBe("/api/tools/nuclei");
-    expect(JSON.parse(lastRequest.body ?? "{}")).toEqual({ target: "https://example.com", severity: "high" });
+    expect(JSON.parse(lastRequest.body ?? "{}")).toEqual({
+      target: "https://example.com",
+      severity: "high",
+    });
   });
 
   it("calls GET /api/processes/status/<pid> for processStatus()", async () => {

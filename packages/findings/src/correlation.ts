@@ -39,10 +39,21 @@ const REPRESENTATIVE_PRIORITY: FindingSource[] = [
   "code_intelligence",
 ];
 
-const SEVERITY_RANK: Record<Severity, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
+const SEVERITY_RANK: Record<Severity, number> = {
+  info: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
 const SEVERITY_BY_RANK: Severity[] = ["info", "low", "medium", "high", "critical"];
 
-const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = { low: 0, medium: 1, high: 2, confirmed: 3 };
+const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+  confirmed: 3,
+};
 const CONFIDENCE_BY_RANK: ConfidenceLevel[] = ["low", "medium", "high", "confirmed"];
 
 function lineRangesNearOverlap(
@@ -109,9 +120,13 @@ function highestSeverity(severities: Severity[]): Severity {
  * "confirmed"). A single detector's confidence, or multiple *identical*
  * detections from the same detector, is left unchanged.
  */
-function resolveConfidence(confidences: ConfidenceLevel[], distinctSourceCount: number): ConfidenceLevel {
+function resolveConfidence(
+  confidences: ConfidenceLevel[],
+  distinctSourceCount: number,
+): ConfidenceLevel {
   const maxRank = Math.max(...confidences.map((c) => CONFIDENCE_RANK[c]));
-  const escalated = distinctSourceCount >= 2 ? Math.min(maxRank + 1, CONFIDENCE_BY_RANK.length - 1) : maxRank;
+  const escalated =
+    distinctSourceCount >= 2 ? Math.min(maxRank + 1, CONFIDENCE_BY_RANK.length - 1) : maxRank;
   return CONFIDENCE_BY_RANK[escalated]!;
 }
 
@@ -175,7 +190,10 @@ function mergeGroup(group: FindingDraft[]): CorrelatedFinding {
  * engine's own cross-referencing (Phase 9) can suggest additional merges
  * for a human to confirm, but never auto-merges silently.
  */
-export function correlateFindings(drafts: FindingDraft[], options: CorrelationOptions = {}): CorrelatedFinding[] {
+export function correlateFindings(
+  drafts: FindingDraft[],
+  options: CorrelationOptions = {},
+): CorrelatedFinding[] {
   const lineProximity = options.lineProximity ?? DEFAULT_LINE_PROXIMITY;
   const parent = drafts.map((_, i) => i);
 

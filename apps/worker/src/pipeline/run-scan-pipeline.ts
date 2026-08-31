@@ -1,7 +1,20 @@
-import { buildFindingAnalysisPrompt, completeStructured, findingAnalysisSchema } from "@sayan-sentinel/ai-engine";
-import { computeSecurityScore, correlateFindings, type FindingDraft } from "@sayan-sentinel/findings";
+import {
+  buildFindingAnalysisPrompt,
+  completeStructured,
+  findingAnalysisSchema,
+} from "@sayan-sentinel/ai-engine";
+import {
+  computeSecurityScore,
+  correlateFindings,
+  type FindingDraft,
+} from "@sayan-sentinel/findings";
 import { evaluatePolicy } from "@sayan-sentinel/policy-engine";
-import type { ScanPipelineDependencies, ScanPipelineInput, ScanPipelineResult, ScannerRunSummary } from "./types";
+import type {
+  ScanPipelineDependencies,
+  ScanPipelineInput,
+  ScanPipelineResult,
+  ScannerRunSummary,
+} from "./types";
 
 const MAX_AI_ANALYZED_FINDINGS = 5;
 const SEVERITY_RANK: Record<string, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
@@ -89,7 +102,12 @@ async function runScanners(
   for (const scanner of scanners) {
     const availability = await scanner.checkAvailability();
     if (!availability.available) {
-      scannerRuns.push({ name: scanner.name, availability, status: "unavailable", rawFindingCount: 0 });
+      scannerRuns.push({
+        name: scanner.name,
+        availability,
+        status: "unavailable",
+        rawFindingCount: 0,
+      });
       continue;
     }
 
@@ -103,9 +121,20 @@ async function runScanners(
         rawFindingCount: outcome.rawFindingCount,
       });
     } else if (outcome.status === "unavailable") {
-      scannerRuns.push({ name: scanner.name, availability, status: "unavailable", rawFindingCount: 0 });
+      scannerRuns.push({
+        name: scanner.name,
+        availability,
+        status: "unavailable",
+        rawFindingCount: 0,
+      });
     } else {
-      scannerRuns.push({ name: scanner.name, availability, status: "failed", rawFindingCount: 0, error: outcome.error });
+      scannerRuns.push({
+        name: scanner.name,
+        availability,
+        status: "failed",
+        rawFindingCount: 0,
+        error: outcome.error,
+      });
     }
   }
 

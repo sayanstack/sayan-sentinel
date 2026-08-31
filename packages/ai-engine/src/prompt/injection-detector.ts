@@ -15,14 +15,23 @@ interface InjectionPattern {
  * entirely for anything that touches a real system).
  */
 const INJECTION_PATTERNS: InjectionPattern[] = [
-  { pattern: /ignore (all |any )?(previous|prior|above|earlier) instructions/i, label: "ignore-previous-instructions" },
+  {
+    pattern: /ignore (all |any )?(previous|prior|above|earlier) instructions/i,
+    label: "ignore-previous-instructions",
+  },
   { pattern: /disregard (all |any )?(previous|prior|above|earlier)/i, label: "disregard-previous" },
   { pattern: /you are now\b/i, label: "role-override" },
   { pattern: /^\s*system\s*:/im, label: "fake-system-marker" },
   { pattern: /\bnew instructions?\b/i, label: "new-instructions-claim" },
-  { pattern: /send (the |my |our )?(secret|password|token|api[ -]?key|credentials?)/i, label: "exfiltration-request" },
+  {
+    pattern: /send (the |my |our )?(secret|password|token|api[ -]?key|credentials?)/i,
+    label: "exfiltration-request",
+  },
   { pattern: /run (this|the following|that) command/i, label: "command-execution-request" },
-  { pattern: /reveal (your|the) (system prompt|instructions|configuration)/i, label: "prompt-extraction" },
+  {
+    pattern: /reveal (your|the) (system prompt|instructions|configuration)/i,
+    label: "prompt-extraction",
+  },
   { pattern: /act as (if you|though you)('re| are)/i, label: "role-override" },
   { pattern: /\bDAN\b.{0,20}\bmode\b/i, label: "jailbreak-persona" },
 ];

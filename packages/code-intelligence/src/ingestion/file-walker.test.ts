@@ -46,7 +46,10 @@ describe("walkRepositoryFiles", () => {
 
   it("excludes vendor/generated directories by name anywhere in the tree", async () => {
     fs.mkdirSync(path.join(root, "node_modules", "left-pad"), { recursive: true });
-    fs.writeFileSync(path.join(root, "node_modules", "left-pad", "index.js"), "module.exports = {};");
+    fs.writeFileSync(
+      path.join(root, "node_modules", "left-pad", "index.js"),
+      "module.exports = {};",
+    );
     fs.mkdirSync(path.join(root, "packages", "app", "dist"), { recursive: true });
     fs.writeFileSync(path.join(root, "packages", "app", "dist", "bundle.js"), "console.log(1);");
     fs.mkdirSync(path.join(root, "packages", "app", "src"), { recursive: true });
@@ -55,9 +58,9 @@ describe("walkRepositoryFiles", () => {
     const result = await walkRepositoryFiles(root);
 
     expect(result.files.map((f) => f.relativePath)).toEqual(["packages/app/src/main.ts"]);
-    expect(result.skipped.some((s) => s.reason === "excluded_dir" && s.relativePath === "node_modules")).toBe(
-      true,
-    );
+    expect(
+      result.skipped.some((s) => s.reason === "excluded_dir" && s.relativePath === "node_modules"),
+    ).toBe(true);
   });
 
   it("skips files over the per-file size limit rather than truncating them", async () => {
@@ -74,7 +77,10 @@ describe("walkRepositoryFiles", () => {
     fs.writeFileSync(path.join(root, "a.txt"), "a".repeat(50));
     fs.writeFileSync(path.join(root, "b.txt"), "b".repeat(50));
 
-    const result = await walkRepositoryFiles(root, { maxRepositorySizeBytes: 60, maxFileSizeBytes: 1000 });
+    const result = await walkRepositoryFiles(root, {
+      maxRepositorySizeBytes: 60,
+      maxFileSizeBytes: 1000,
+    });
 
     expect(result.files.length).toBeLessThan(2);
     expect(result.skipped.some((s) => s.reason === "repository_size_budget_exceeded")).toBe(true);
@@ -99,21 +105,26 @@ describe("walkRepositoryFiles", () => {
 
       expect(result.files).toHaveLength(0);
       expect(
-        result.skipped.some((s) => s.relativePath === "escape-link" && s.reason === "symlink_escapes_root"),
+        result.skipped.some(
+          (s) => s.relativePath === "escape-link" && s.reason === "symlink_escapes_root",
+        ),
       ).toBe(true);
     },
   );
 
-  it.skipIf(!canCreateSymlinks)("follows a symlink that resolves back inside the root", async () => {
-    fs.mkdirSync(path.join(root, "real-target"), { recursive: true });
-    fs.writeFileSync(path.join(root, "real-target", "inside.ts"), "export {};");
-    fs.symlinkSync(path.join(root, "real-target"), path.join(root, "link-to-inside"), "junction");
+  it.skipIf(!canCreateSymlinks)(
+    "follows a symlink that resolves back inside the root",
+    async () => {
+      fs.mkdirSync(path.join(root, "real-target"), { recursive: true });
+      fs.writeFileSync(path.join(root, "real-target", "inside.ts"), "export {};");
+      fs.symlinkSync(path.join(root, "real-target"), path.join(root, "link-to-inside"), "junction");
 
-    const result = await walkRepositoryFiles(root);
+      const result = await walkRepositoryFiles(root);
 
-    expect(result.files.map((f) => f.relativePath).sort()).toEqual([
-      "link-to-inside/inside.ts",
-      "real-target/inside.ts",
-    ]);
-  });
+      expect(result.files.map((f) => f.relativePath).sort()).toEqual([
+        "link-to-inside/inside.ts",
+        "real-target/inside.ts",
+      ]);
+    },
+  );
 });

@@ -30,7 +30,8 @@ export interface ValidationRequest {
   resolver?: DnsResolver;
 }
 
-export type ValidationOutcomeStatus = "confirmed" | "inconclusive" | "failed" | "rejected_by_scope_guard";
+export type ValidationOutcomeStatus =
+  "confirmed" | "inconclusive" | "failed" | "rejected_by_scope_guard";
 
 export interface ValidationResult {
   status: ValidationOutcomeStatus;
@@ -50,8 +51,16 @@ export interface ValidationResult {
  * untyped input (e.g. a request deserialized from JSON).
  */
 const SUPPORTED_CAPABILITIES: Capability[] = [
-  { id: "http_probe", tier: 0, description: "Passive HTTP probing and technology detection (httpx)" },
-  { id: "vulnerability_scan", tier: 1, description: "Template-based vulnerability scanning (Nuclei)" },
+  {
+    id: "http_probe",
+    tier: 0,
+    description: "Passive HTTP probing and technology detection (httpx)",
+  },
+  {
+    id: "vulnerability_scan",
+    tier: 1,
+    description: "Template-based vulnerability scanning (Nuclei)",
+  },
 ];
 
 export interface DynamicValidationProvider {
@@ -106,7 +115,11 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
 
     const capability = SUPPORTED_CAPABILITIES.find((c) => c.id === request.validationType);
     if (!capability) {
-      return { status: "failed", reason: `unsupported validation type: ${request.validationType}`, scopeDecision };
+      return {
+        status: "failed",
+        reason: `unsupported validation type: ${request.validationType}`,
+        scopeDecision,
+      };
     }
     if (request.tier > capability.tier) {
       return {
@@ -118,12 +131,18 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
 
     const raw = await this.runCapability(capability.id, request.url);
     if (!raw.success) {
-      return { status: "failed", reason: raw.error ?? "HexStrike tool call failed", scopeDecision, raw };
+      return {
+        status: "failed",
+        reason: raw.error ?? "HexStrike tool call failed",
+        scopeDecision,
+        raw,
+      };
     }
 
     return {
       status: "inconclusive",
-      reason: "HexStrike call completed successfully; interpreting the result into a confirmed/rejected verdict is the evidence engine's job, not this adapter's.",
+      reason:
+        "HexStrike call completed successfully; interpreting the result into a confirmed/rejected verdict is the evidence engine's job, not this adapter's.",
       scopeDecision,
       raw,
     };
@@ -149,7 +168,10 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
       case "vulnerability_scan":
         return this.client.runTool("nuclei", { target: url, severity: "low,medium" });
       default:
-        return Promise.resolve({ success: false, error: `no execution mapping for capability ${capabilityId}` });
+        return Promise.resolve({
+          success: false,
+          error: `no execution mapping for capability ${capabilityId}`,
+        });
     }
   }
 }

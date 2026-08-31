@@ -1,8 +1,17 @@
-import type { AICompletionRequest, AICompletionResponse, AIProvider } from "@sayan-sentinel/ai-engine";
+import type {
+  AICompletionRequest,
+  AICompletionResponse,
+  AIProvider,
+} from "@sayan-sentinel/ai-engine";
 import type { CodeGraph } from "@sayan-sentinel/code-intelligence";
 import type { FindingDraft } from "@sayan-sentinel/findings";
 import { failIfCriticalExists } from "@sayan-sentinel/policy-engine";
-import type { ScanOptions, ScanOutcome, ScannerAdapter, ScannerAvailability } from "@sayan-sentinel/security-engine";
+import type {
+  ScanOptions,
+  ScanOutcome,
+  ScannerAdapter,
+  ScannerAvailability,
+} from "@sayan-sentinel/security-engine";
 import { describe, expect, it } from "vitest";
 import { runScanPipeline } from "./run-scan-pipeline";
 import type { ScanPipelineDependencies, ScanPipelineInput } from "./types";
@@ -35,13 +44,17 @@ class FakeScanner implements ScannerAdapter {
     return Promise.resolve(this.availability);
   }
   scan(_targetDir: string, _options?: ScanOptions): Promise<ScanOutcome> {
-    return Promise.resolve(this.outcome ?? { status: "completed", findings: [], durationMs: 1, rawFindingCount: 0 });
+    return Promise.resolve(
+      this.outcome ?? { status: "completed", findings: [], durationMs: 1, rawFindingCount: 0 },
+    );
   }
 }
 
 class FakeAIProvider implements AIProvider {
   readonly name = "fake";
-  constructor(private readonly respond: (req: AICompletionRequest) => AICompletionResponse | Error) {}
+  constructor(
+    private readonly respond: (req: AICompletionRequest) => AICompletionResponse | Error,
+  ) {}
   complete(request: AICompletionRequest): Promise<AICompletionResponse> {
     const result = this.respond(request);
     if (result instanceof Error) return Promise.reject(result);
@@ -101,19 +114,30 @@ describe("runScanPipeline", () => {
 
     expect(result.correlatedFindings).toHaveLength(1);
     expect(result.scannerRuns).toEqual([
-      { name: "fake-scanner", availability: { available: true, version: "1.0" }, status: "completed", rawFindingCount: 1 },
+      {
+        name: "fake-scanner",
+        availability: { available: true, version: "1.0" },
+        status: "completed",
+        rawFindingCount: 1,
+      },
     ]);
   });
 
   it("records an unavailable scanner honestly and still completes the scan using the others", async () => {
-    const unavailable = new FakeScanner("missing-tool", { available: false, reason: "not installed" });
+    const unavailable = new FakeScanner("missing-tool", {
+      available: false,
+      reason: "not installed",
+    });
     const available = new FakeScanner(
       "present-tool",
       { available: true },
       { status: "completed", findings: [draft()], durationMs: 1, rawFindingCount: 1 },
     );
 
-    const result = await runScanPipeline(baseInput(), baseDeps({ scanners: [unavailable, available] }));
+    const result = await runScanPipeline(
+      baseInput(),
+      baseDeps({ scanners: [unavailable, available] }),
+    );
 
     expect(result.scannerRuns.find((r) => r.name === "missing-tool")?.status).toBe("unavailable");
     expect(result.scannerRuns.find((r) => r.name === "present-tool")?.status).toBe("completed");
@@ -129,7 +153,11 @@ describe("runScanPipeline", () => {
 
     const result = await runScanPipeline(baseInput(), baseDeps({ scanners: [failing] }));
 
-    expect(result.scannerRuns[0]).toMatchObject({ name: "broken-tool", status: "failed", error: "crashed" });
+    expect(result.scannerRuns[0]).toMatchObject({
+      name: "broken-tool",
+      status: "failed",
+      error: "crashed",
+    });
     expect(result.policyResult.passed).toBe(true);
   });
 
@@ -137,7 +165,12 @@ describe("runScanPipeline", () => {
     const scanner = new FakeScanner(
       "fake-scanner",
       { available: true },
-      { status: "completed", findings: [draft({ severity: "critical" })], durationMs: 1, rawFindingCount: 1 },
+      {
+        status: "completed",
+        findings: [draft({ severity: "critical" })],
+        durationMs: 1,
+        rawFindingCount: 1,
+      },
     );
 
     const result = await runScanPipeline(
@@ -150,7 +183,11 @@ describe("runScanPipeline", () => {
   });
 
   it("skips AI analysis with a clear reason when a provider is configured but no model is given", async () => {
-    const provider = new FakeAIProvider(() => ({ text: VALID_ANALYSIS_JSON, usage: { inputTokens: 1, outputTokens: 1 }, model: "x" }));
+    const provider = new FakeAIProvider(() => ({
+      text: VALID_ANALYSIS_JSON,
+      usage: { inputTokens: 1, outputTokens: 1 },
+      model: "x",
+    }));
 
     const result = await runScanPipeline(baseInput(), baseDeps({ aiProvider: provider }));
 
@@ -161,7 +198,12 @@ describe("runScanPipeline", () => {
     const scanner = new FakeScanner(
       "fake-scanner",
       { available: true },
-      { status: "completed", findings: [draft({ severity: "high" })], durationMs: 1, rawFindingCount: 1 },
+      {
+        status: "completed",
+        findings: [draft({ severity: "high" })],
+        durationMs: 1,
+        rawFindingCount: 1,
+      },
     );
     const provider = new FakeAIProvider(() => ({
       text: VALID_ANALYSIS_JSON,
@@ -181,7 +223,12 @@ describe("runScanPipeline", () => {
     const scanner = new FakeScanner(
       "fake-scanner",
       { available: true },
-      { status: "completed", findings: [draft({ severity: "critical" })], durationMs: 1, rawFindingCount: 1 },
+      {
+        status: "completed",
+        findings: [draft({ severity: "critical" })],
+        durationMs: 1,
+        rawFindingCount: 1,
+      },
     );
     const provider = new FakeAIProvider(() => new Error("provider unreachable"));
 

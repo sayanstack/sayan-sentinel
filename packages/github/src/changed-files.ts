@@ -43,13 +43,20 @@ interface CategoryRule {
 const CATEGORY_RULES: CategoryRule[] = [
   { category: "auth_logic", pathPattern: /auth|login|session|jwt|passport|oauth/i },
   { category: "authorization_logic", pathPattern: /permission|role|rbac|\bacl\b|policy|guard/i },
-  { category: "database_access", pathPattern: /prisma|migration|schema\.prisma|\.sql$|repository|\bdao\b/i },
+  {
+    category: "database_access",
+    pathPattern: /prisma|migration|schema\.prisma|\.sql$|repository|\bdao\b/i,
+  },
   { category: "sensitive_configuration", pathPattern: /(^|\/)\.env|config|settings|secrets?/i },
   {
     category: "dependency_manifest",
-    pathPattern: /package(-lock)?\.json$|pnpm-lock\.yaml$|yarn\.lock$|Gemfile\.lock$|requirements.*\.txt$|go\.sum$/i,
+    pathPattern:
+      /package(-lock)?\.json$|pnpm-lock\.yaml$|yarn\.lock$|Gemfile\.lock$|requirements.*\.txt$|go\.sum$/i,
   },
-  { category: "ci_cd_configuration", pathPattern: /(^|\/)\.github\/workflows\/|(^|\/)Dockerfile$|docker-compose/i },
+  {
+    category: "ci_cd_configuration",
+    pathPattern: /(^|\/)\.github\/workflows\/|(^|\/)Dockerfile$|docker-compose/i,
+  },
   {
     category: "external_requests",
     // Content match only — no file path implies this on its own.
@@ -60,7 +67,9 @@ const CATEGORY_RULES: CategoryRule[] = [
 export function classifyChangedFile(file: ChangedFile): ChangedFileClassification {
   const categories = CATEGORY_RULES.filter((rule) => {
     const pathMatches = rule.pathPattern?.test(file.path) ?? false;
-    const patchMatches = Boolean(rule.patchPattern && file.patch && rule.patchPattern.test(file.patch));
+    const patchMatches = Boolean(
+      rule.patchPattern && file.patch && rule.patchPattern.test(file.patch),
+    );
     return pathMatches || patchMatches;
   }).map((rule) => rule.category);
 

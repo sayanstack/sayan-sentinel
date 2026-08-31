@@ -20,12 +20,14 @@ requested.
 ## Scope
 
 In scope:
+
 - The Sentinel application (`apps/`, `packages/`)
 - Scope Guard / dynamic-validation authorization logic
 - The GitHub App integration and webhook handling
 - The AI prompt-injection boundary
 
 Out of scope:
+
 - The bundled `examples/vulnerable-demo-app` fixture — its vulnerabilities are
   intentional and documented. Do not report them.
 - Third-party tools Sentinel shells out to (Semgrep, Gitleaks, OSV-Scanner,

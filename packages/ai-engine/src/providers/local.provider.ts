@@ -1,5 +1,10 @@
 import OpenAI from "openai";
-import type { AICompletionCallOptions, AICompletionRequest, AICompletionResponse, AIProvider } from "../provider";
+import type {
+  AICompletionCallOptions,
+  AICompletionRequest,
+  AICompletionResponse,
+  AIProvider,
+} from "../provider";
 
 /**
  * A local/self-hosted OpenAI-compatible endpoint (Ollama, vLLM, LM Studio,

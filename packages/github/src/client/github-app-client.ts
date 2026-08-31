@@ -91,9 +91,19 @@ export class GitHubAppClient {
     return data;
   }
 
-  async listPullRequestFiles(installationId: number, owner: string, repo: string, pullNumber: number) {
+  async listPullRequestFiles(
+    installationId: number,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ) {
     const octokit = await this.getInstallationOctokit(installationId);
-    const { data } = await octokit.rest.pulls.listFiles({ owner, repo, pull_number: pullNumber, per_page: 100 });
+    const { data } = await octokit.rest.pulls.listFiles({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      per_page: 100,
+    });
     return data;
   }
 
@@ -112,7 +122,9 @@ export class GitHubAppClient {
       status: params.status,
       conclusion: params.conclusion,
       output:
-        params.title && params.summary ? { title: params.title, summary: params.summary } : undefined,
+        params.title && params.summary
+          ? { title: params.title, summary: params.summary }
+          : undefined,
     });
   }
 
@@ -125,7 +137,12 @@ export class GitHubAppClient {
     fromSha: string,
   ): Promise<RestResponse<RestOctokit["rest"]["git"]["createRef"]>> {
     const octokit = await this.getInstallationOctokit(installationId);
-    return octokit.rest.git.createRef({ owner, repo, ref: `refs/heads/${branchName}`, sha: fromSha });
+    return octokit.rest.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${branchName}`,
+      sha: fromSha,
+    });
   }
 
   async commitFileChange(

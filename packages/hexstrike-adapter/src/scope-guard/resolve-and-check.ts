@@ -63,19 +63,35 @@ export async function resolveAndCheckHost(
   }
 
   if (BLOCKED_HOSTNAMES.has(hostname.toLowerCase())) {
-    return { blocked: true, resolvedAddresses: addresses, reason: `hostname "${hostname}" is blocked` };
+    return {
+      blocked: true,
+      resolvedAddresses: addresses,
+      reason: `hostname "${hostname}" is blocked`,
+    };
   }
 
   for (const address of addresses) {
     const version = net.isIP(address);
     if (version === 4 && isBlockedIPv4(address)) {
-      return { blocked: true, resolvedAddresses: addresses, reason: `resolved address ${address} is in a blocked range` };
+      return {
+        blocked: true,
+        resolvedAddresses: addresses,
+        reason: `resolved address ${address} is in a blocked range`,
+      };
     }
     if (version === 6 && isBlockedIPv6(address)) {
-      return { blocked: true, resolvedAddresses: addresses, reason: `resolved address ${address} is in a blocked range` };
+      return {
+        blocked: true,
+        resolvedAddresses: addresses,
+        reason: `resolved address ${address} is in a blocked range`,
+      };
     }
     if (version === 0) {
-      return { blocked: true, resolvedAddresses: addresses, reason: `unparseable resolved address: ${address}` };
+      return {
+        blocked: true,
+        resolvedAddresses: addresses,
+        reason: `unparseable resolved address: ${address}`,
+      };
     }
   }
 

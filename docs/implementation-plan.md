@@ -6,28 +6,28 @@ until it genuinely works (builds, runs, and is tested).
 
 Status legend: `not started` · `in progress` · `done`
 
-| Phase | Scope | Status |
-|---|---|---|
-| 1 | Repository inspection | done |
-| 2 | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done |
-| 3 | This plan | done |
-| 4 | Monorepo scaffold, root tooling, contracts | done |
-| 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | done |
-| 6 | Repository ingestion + code intelligence (AST graph) | done |
-| 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | done |
-| 8 | Findings model + correlation engine | done |
-| 9 | AI engine (provider abstraction, schema-validated reasoning) | done |
-| 10 | Scope Guard | done |
-| 11 | HexStrike AI adapter (real interface) | done |
-| 12 | GitHub App integration | done |
-| 13 | Policy engine + worker job pipeline | done |
-| 13b | Remediation / patch / PR workflow (patch generation, approval, PR creation) | not started |
-| 14 | Frontend (Next.js, dashboard, code graph, findings) | not started |
-| 15 | Vulnerable demo fixture | done |
-| 16 | Tests + security regression suite | not started |
-| 17 | Docker / CI | in progress (local infra compose done; app containers + CI pending) |
-| 18 | Documentation | in progress |
-| 19 | Full audit | not started |
+| Phase | Scope                                                                                       | Status                                                              |
+| ----- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1     | Repository inspection                                                                       | done                                                                |
+| 2     | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done                                                                |
+| 3     | This plan                                                                                   | done                                                                |
+| 4     | Monorepo scaffold, root tooling, contracts                                                  | done                                                                |
+| 5     | Foundational backend (NestJS API skeleton, health/readiness, config, logging)               | done                                                                |
+| 6     | Repository ingestion + code intelligence (AST graph)                                        | done                                                                |
+| 7     | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters)                       | done                                                                |
+| 8     | Findings model + correlation engine                                                         | done                                                                |
+| 9     | AI engine (provider abstraction, schema-validated reasoning)                                | done                                                                |
+| 10    | Scope Guard                                                                                 | done                                                                |
+| 11    | HexStrike AI adapter (real interface)                                                       | done                                                                |
+| 12    | GitHub App integration                                                                      | done                                                                |
+| 13    | Policy engine + worker job pipeline                                                         | done                                                                |
+| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | not started                                                         |
+| 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | not started                                                         |
+| 15    | Vulnerable demo fixture                                                                     | done                                                                |
+| 16    | Tests + security regression suite                                                           | not started                                                         |
+| 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
+| 18    | Documentation                                                                               | in progress                                                         |
+| 19    | Full audit                                                                                  | not started                                                         |
 
 ## Phase 2 research notes (to date)
 
@@ -45,7 +45,7 @@ Status legend: `not started` · `in progress` · `done`
 - **HexStrike AI**: the `hexstrike-ai` MCP server is available in this
   environment (tools prefixed `mcp__hexstrike-ai__*`, e.g. `nuclei_scan`,
   `httpx_probe`, `nmap_scan`, `server_health`). `packages/hexstrike-adapter`
-  must be implemented against this *actual* tool surface, not a guessed REST
+  must be implemented against this _actual_ tool surface, not a guessed REST
   API — Phase 11 starts with an inventory of the real tool schemas before
   writing the `DynamicValidationProvider` implementation.
 - **Node/pnpm/turbo/git** confirmed installed locally (Node 24.19.0, pnpm
@@ -78,7 +78,7 @@ Built, and verified with real command output (not assumed):
   Finding, FindingEvidence, TargetAuthorization, DynamicValidation, Policy,
   Patch, PullRequest, AuditEvent, AIUsage) with explicit `organizationId` on
   every tenant-owned row for isolation, a unique `(repositoryId,
-  fingerprint)` constraint on `Finding` for stable dedup, and a seed script
+fingerprint)` constraint on `Finding` for stable dedup, and a seed script
   for local dev identity only (no fake repositories/scans/findings).
   `prisma generate` succeeds against the schema (verified); no live
   database is available yet to run migrations (see Docker note above).
@@ -149,6 +149,7 @@ immediately and the AI engine will too — Sections 11/14/31).
 
 **Ingestion** (`src/ingestion/`), treating repository content as untrusted
 throughout:
+
 - `git-ingestor.ts` — clones a single commit via a blobless partial clone
   (`--filter=blob:none`) fetching the exact SHA directly (GitHub supports
   this), with a shallow-branch-fetch fallback if the server refuses direct
@@ -165,17 +166,18 @@ throughout:
   content sniff (a NUL byte in the first 8KB), not just file extension.
 - **Verified with a real local git repository** (not mocked): the test
   suite creates an actual origin repo via the `git` binary, commits twice,
-  and asserts `cloneRepositoryAtCommit` (a) checks out the *exact*
+  and asserts `cloneRepositoryAtCommit` (a) checks out the _exact_
   requested commit rather than just `HEAD`, (b) falls back correctly when
   `uploadpack.allowReachableSHA1InWant` is disabled on the server, (c)
   leaves a maliciously named shell script as inert data — it is never
   executed, and (d) redacts an embedded credential from both the thrown
-  error's message *and* its raw `stderr` (git's own error text embeds the
+  error's message _and_ its raw `stderr` (git's own error text embeds the
   full URL, e.g. `unable to access 'https://user:pass@host/...'` — the
   first redaction pass missed this and only scrubbed the constructor's own
   interpolation; fixed by scrubbing the literal raw URL out of stderr too).
 
 **Code graph** (`src/graph/`), built on `ts-morph` (AST-based, not regex):
+
 - File, function (including named `const x = () => {}`), class, and method
   nodes.
 - `IMPORTS` edges — resolved for local relative imports (file → file) and
@@ -208,7 +210,7 @@ Section 8.
 symlink-escape tests — this Windows dev machine's account can't create
 filesystem junctions (probed at runtime; the tests skip themselves rather
 than being asserted false-positive), so symlink protection is implemented
-and code-reviewed but not test-verified in *this* environment. It will run
+and code-reviewed but not test-verified in _this_ environment. It will run
 for real in CI on Linux. `pnpm build`/`lint`/`typecheck`/`test` are green
 across all 6 packages/apps (20/20 Turborepo tasks).
 
@@ -222,10 +224,11 @@ tracked for cleanup, not blocking.
 Before writing scanner normalizers, fetched the current documented JSON
 output schemas rather than working from memory, since getting a security
 tool's parser subtly wrong is a real correctness bug:
+
 - Semgrep: `docs.semgrep.dev/semgrep-appsec-platform/json-and-sarif` —
   confirmed `check_id`/`path`/`start`/`end`/`extra.{message,severity,
-  metadata,lines}` shape, and that `metadata.cwe`/`metadata.owasp` can be
-  string *or* array (handled both).
+metadata,lines}` shape, and that `metadata.cwe`/`metadata.owasp` can be
+  string _or_ array (handled both).
 - Gitleaks: confirmed field names (`RuleID`, `StartLine`, `Secret`,
   `Match`, `Fingerprint`, etc.) via the project's own README/docs.
 - OSV-Scanner: confirmed `results[].source`/`packages[].package`/
@@ -243,6 +246,7 @@ Built `packages/findings` (canonical model) and `packages/security-engine`
 (the three scanner adapters), with a repo-wide fix along the way.
 
 **`packages/findings`**:
+
 - `FindingDraft`/`FindingEvidenceDraft` — the pre-persistence shape every
   scanner normalizer produces, evidence-array-first so the correlation
   engine (Phase 8, not yet built) has something to merge.
@@ -257,6 +261,7 @@ Built `packages/findings` (canonical model) and `packages/security-engine`
 
 **`packages/security-engine`** — one adapter per tool, all implementing a
 common `ScannerAdapter` interface (`checkAvailability()` / `scan()`):
+
 - Every adapter shells out via `execFile` with argument arrays (no shell).
 - **Never fabricates a result.** `checkAvailability()` and `scan()` both
   return a genuine `unavailable`/`available:false` outcome — never a fake
@@ -267,7 +272,7 @@ common `ScannerAdapter` interface (`checkAvailability()` / `scan()`):
   using the real Node binary as the test subprocess.
 - Semgrep adapter: `semgrep scan --config auto --json`.
 - Gitleaks adapter: `gitleaks detect --no-git --report-format json
-  --exit-code 0` (writing to a temp report file, cleaned up after read) —
+--exit-code 0` (writing to a temp report file, cleaned up after read) —
   forcing exit 0 even when secrets are found means a non-zero exit
   reliably signals a genuine tool error, not "leaks were found".
 - OSV-Scanner adapter: `osv-scanner --format json --recursive`.
@@ -278,7 +283,7 @@ common `ScannerAdapter` interface (`checkAvailability()` / `scan()`):
   secret string is absent from `JSON.stringify(draft)` entirely, not just
   "probably redacted."
 - OSV normalizer treats a resolved advisory match as `confidence:
-  "confirmed"` (a database lookup, not a heuristic), while Semgrep/Gitleaks
+"confirmed"` (a database lookup, not a heuristic), while Semgrep/Gitleaks
   findings get `"high"/"medium"` confidence — a deliberate distinction
   documented in-code.
 
@@ -300,11 +305,10 @@ Built into `packages/findings`:
 
 - `correlateFindings()` — groups `FindingDraft`s from potentially
   different detectors into one `CorrelatedFinding` (with a `detectedBy:
-  FindingSource[]` list) instead of one Finding per detector, per Section
-  16. Matching is deliberately simple and documented as such (union-find
+FindingSource[]` list) instead of one Finding per detector, per Section 16. Matching is deliberately simple and documented as such (union-find
   over same-file/near-line-range or same-category+symbol pairs) rather
   than claiming semantic similarity it doesn't do. Confidence escalates
-  one level when 2+ *distinct* sources agree (capped at "confirmed");
+  one level when 2+ _distinct_ sources agree (capped at "confirmed");
   severity takes the max across the group; the representative
   title/description is chosen by a documented priority
   (dynamic_validation > static_analysis > ai_review > secret_detection >
@@ -312,7 +316,7 @@ Built into `packages/findings`:
 - **Caught and fixed a real bug via its own test**: the merged fingerprint
   was only recomputed for multi-source groups — a singleton finding kept
   its original per-source fingerprint. That meant the same issue would get
-  a *different* fingerprint the moment a second detector started seeing it
+  a _different_ fingerprint the moment a second detector started seeing it
   across scans, defeating the entire "stable fingerprint" premise. Fixed
   by always computing the source-independent correlation fingerprint,
   regardless of group size.
@@ -383,9 +387,9 @@ otherwise.
   estimated cost would exceed either budget is rejected before it's made,
   never after.
 - One demonstration end-to-end schema/prompt pair (`findingAnalysisSchema`
-  + `buildFindingAnalysisPrompt`) showing the false-positive-reduction /
-  remediation-suggestion use case from Section 13 wired together with all
-  of the above.
+  - `buildFindingAnalysisPrompt`) showing the false-positive-reduction /
+    remediation-suggestion use case from Section 13 wired together with all
+    of the above.
 
 **Test results**: 44 new tests in `ai-engine` (14 injection-detector, 7
 secret-redaction, 8 structured-client, 5 budget-guard, 5 pricing, 5
@@ -415,11 +419,12 @@ presented as equally certain.
 
 **Scope Guard** (`src/scope-guard/`) — the deterministic boundary that
 sits outside the AI and cannot be influenced by it:
+
 - `ip-blocklist.ts`: dependency-free IPv4 CIDR matching (RFC1918, loopback,
   link-local — which covers the 169.254.169.254 cloud metadata endpoint —
   CGNAT, and the reserved/test ranges) plus narrower but still-tested IPv6
   coverage (loopback, link-local, unique-local, IPv4-mapped). Fails
-  *closed*: a malformed IP is treated as blocked, not allowed.
+  _closed_: a malformed IP is treated as blocked, not allowed.
 - `resolve-and-check.ts`: always resolves the hostname fresh and checks
   the **resolved address**, never the hostname string alone — the specific
   defense against DNS rebinding (a domain that resolves to a public IP at
@@ -431,7 +436,7 @@ sits outside the AI and cannot be influenced by it:
   becomes its own rebinding window.
 - `scope-guard.ts` (`evaluateScopeGuard`): the full decision chain — valid
   URL → http(s) only → not a bare localhost/loopback hostname unless
-  `localLabMode` → a matching, non-revoked, unexpired, *verified*
+  `localLabMode` → a matching, non-revoked, unexpired, _verified_
   authorization exists for the exact scheme+host+port → requested tier
   doesn't exceed the authorization's max tier → path is within an allowed
   prefix → resolved address isn't blocked. Every branch fails closed.
@@ -440,6 +445,7 @@ sits outside the AI and cannot be influenced by it:
   path/tier/host all check out.
 
 **HexStrike adapter** (`src/client/`, `src/provider.ts`):
+
 - `HexStrikeHttpClient` — talks to the four verified endpoints above,
   never throws (a connection failure, timeout, or non-JSON response all
   come back as `{ success: false, error }`, matching HexStrike's own
@@ -503,7 +509,7 @@ writing against it (matched what was drafted).
   manifests, CI/CD config, external requests) feeding Section 25's
   "Sensitive Files Changed" / focused-PR-review concept. Deliberately
   lighter-weight than the AST-based code-intelligence graph — this exists
-  to decide *whether* a PR needs deep attention, fast, not to replace deep
+  to decide _whether_ a PR needs deep attention, fast, not to replace deep
   analysis.
 - `GITHUB_APP_PERMISSIONS` / `GITHUB_APP_WEBHOOK_EVENTS` — the exact,
   justified minimum-necessary permission set (Section 6), with a
@@ -516,9 +522,9 @@ writing against it (matched what was drafted).
   GitHub App credentials are configured here. Stated plainly.
 - Fixed a genuine TypeScript declaration-emission bug along the way
   (TS2742: "inferred type cannot be named") for the four methods that
-  return the *whole* Octokit response rather than just `.data` — those
+  return the _whole_ Octokit response rather than just `.data` — those
   needed explicit return-type annotations. Initially over-corrected by
-  annotating *every* method via a separately-imported `@octokit/types`
+  annotating _every_ method via a separately-imported `@octokit/types`
   dependency, which triggered a real version-mismatch bug (pnpm resolved
   three different `@octokit/types` versions simultaneously, and their
   `id: number` vs `id: number | bigint` shapes conflicted). Fixed properly
@@ -553,6 +559,7 @@ composition is tested without needing a real git binary, real scanners, a
 real AI provider, or Redis (each of those is already tested in its own
 package; this proves they wire together correctly). Two honesty-driven
 design decisions:
+
 - A missing/unavailable scanner, or a failed AI call, never aborts the
   scan — deterministic results already computed remain valid, matching
   Section 43's "AI provider unavailable — deterministic analysis completed
@@ -598,6 +605,27 @@ Semgrep/Gitleaks/OSV-Scanner results against this fixture couldn't be
 demonstrated live in this environment (none of the three tools are
 installed here, per Phase 7's notes) — that's a real, disclosed gap, not
 one this fixture papers over.
+
+## Phase 17 completion notes
+
+Wrote `apps/api/Dockerfile` and `apps/worker/Dockerfile` using
+Turborepo's documented `turbo prune --docker` pattern (multi-stage:
+prune → install pruned deps → `turbo run build --filter=<app>...` →
+copy into a slim non-root runtime image), plus `.dockerignore` and
+`api`/`worker` services added to `docker-compose.yml` alongside the
+existing Postgres/Redis/MinIO. **Not built or run** — no Docker engine is
+installed on this machine (confirmed in Phase 2's research notes) — run
+`docker build` yourself to validate before relying on these in
+production. `apps/web` has no Dockerfile yet (no frontend exists yet).
+
+Added `.github/workflows/ci.yml`: install → format check → lint →
+typecheck → test → build, all via pnpm/Turborepo on `ubuntu-latest`.
+Before writing it, ran `pnpm format:check` locally and found 60 files
+that didn't match Prettier's exact rules (whitespace/wrapping
+differences from hand-written code, not logic issues) — fixed with
+`pnpm format` and re-verified the full `build`/`lint`/`typecheck`/`test`
+suite still passes (48/48 tasks), so the CI workflow isn't referencing a
+check that would fail on its first real run.
 
 ## Working agreement for remaining phases
 

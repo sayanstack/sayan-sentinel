@@ -12,11 +12,22 @@ const PRISMA_WRITE_VERBS = new Set([
   "delete",
   "deleteMany",
 ]);
-const PRISMA_READ_VERBS = new Set(["findMany", "findUnique", "findFirst", "count", "aggregate", "groupBy"]);
+const PRISMA_READ_VERBS = new Set([
+  "findMany",
+  "findUnique",
+  "findFirst",
+  "count",
+  "aggregate",
+  "groupBy",
+]);
 const PRISMA_VERBS = new Set([...PRISMA_READ_VERBS, ...PRISMA_WRITE_VERBS]);
 
 /** Detects Prisma-style `prisma.<model>.<verb>(...)` (and `this.prisma....`) database access. */
-export function extractDbQueries(ctx: CodeGraphBuilderContext, sourceFile: SourceFile, filePath: string): void {
+export function extractDbQueries(
+  ctx: CodeGraphBuilderContext,
+  sourceFile: SourceFile,
+  filePath: string,
+): void {
   const fileNodeId = nodeId("file", filePath, filePath, 0);
 
   for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
@@ -35,7 +46,14 @@ export function extractDbQueries(ctx: CodeGraphBuilderContext, sourceFile: Sourc
 
     const line = call.getStartLineNumber();
     const modelNodeId = syntheticNodeId("db_model", model);
-    ctx.addNode({ id: modelNodeId, kind: "db_model", filePath: "", name: model, lineStart: 0, lineEnd: 0 });
+    ctx.addNode({
+      id: modelNodeId,
+      kind: "db_model",
+      filePath: "",
+      name: model,
+      lineStart: 0,
+      lineEnd: 0,
+    });
 
     const scopeId = nearestScopeNodeId(call, filePath) ?? fileNodeId;
     const isWrite = PRISMA_WRITE_VERBS.has(verb);

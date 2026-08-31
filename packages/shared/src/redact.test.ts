@@ -78,6 +78,8 @@ describe("maskSecretValue", () => {
   });
 
   it("is deterministic for the same input", () => {
-    expect(maskSecretValue("some-long-secret-value-here")).toBe(maskSecretValue("some-long-secret-value-here"));
+    expect(maskSecretValue("some-long-secret-value-here")).toBe(
+      maskSecretValue("some-long-secret-value-here"),
+    );
   });
 });

@@ -20,11 +20,18 @@ function main(): void {
   const worker = startScanWorker(config, connection);
 
   worker.on("completed", (job) => {
-    console.log(JSON.stringify({ event: "scan.completed", jobId: job.id, scanId: job.data.scanId }));
+    console.log(
+      JSON.stringify({ event: "scan.completed", jobId: job.id, scanId: job.data.scanId }),
+    );
   });
   worker.on("failed", (job, error) => {
     console.error(
-      JSON.stringify({ event: "scan.failed", jobId: job?.id, scanId: job?.data.scanId, error: error.message }),
+      JSON.stringify({
+        event: "scan.failed",
+        jobId: job?.id,
+        scanId: job?.data.scanId,
+        error: error.message,
+      }),
     );
   });
 

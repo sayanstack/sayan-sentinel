@@ -24,7 +24,10 @@ export function getModelPricing(model: string): ModelPricing {
   return PRICING_TABLE[model] ?? DEFAULT_PRICING;
 }
 
-export function estimateCostUsd(model: string, usage: { inputTokens: number; outputTokens: number }): number {
+export function estimateCostUsd(
+  model: string,
+  usage: { inputTokens: number; outputTokens: number },
+): number {
   const pricing = getModelPricing(model);
   return (
     (usage.inputTokens / 1_000_000) * pricing.inputPerMillionUsd +

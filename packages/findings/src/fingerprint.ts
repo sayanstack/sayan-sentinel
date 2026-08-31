@@ -27,7 +27,14 @@ export interface FingerprintInput {
  * identical input always yields the identical fingerprint.
  */
 export function computeFingerprint(input: FingerprintInput): string {
-  const stabilityAnchor = input.evidenceText ?? (input.lineStart !== undefined ? String(input.lineStart) : "");
-  const key = [input.source, input.category, input.filePath ?? "", input.symbol ?? "", stabilityAnchor].join("::");
+  const stabilityAnchor =
+    input.evidenceText ?? (input.lineStart !== undefined ? String(input.lineStart) : "");
+  const key = [
+    input.source,
+    input.category,
+    input.filePath ?? "",
+    input.symbol ?? "",
+    stabilityAnchor,
+  ].join("::");
   return createHash("sha256").update(key).digest("hex");
 }

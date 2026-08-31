@@ -3,12 +3,20 @@ import { ValidationRateLimiter } from "./rate-limiter";
 
 describe("ValidationRateLimiter", () => {
   it("allows requests under every limit", () => {
-    const limiter = new ValidationRateLimiter({ maxConcurrent: 5, maxRequestsPerSecond: 5, maxTotalRequests: 100 });
+    const limiter = new ValidationRateLimiter({
+      maxConcurrent: 5,
+      maxRequestsPerSecond: 5,
+      maxTotalRequests: 100,
+    });
     expect(limiter.canProceed().allowed).toBe(true);
   });
 
   it("blocks once the total-request cap is reached", () => {
-    const limiter = new ValidationRateLimiter({ maxConcurrent: 10, maxRequestsPerSecond: 10, maxTotalRequests: 2 });
+    const limiter = new ValidationRateLimiter({
+      maxConcurrent: 10,
+      maxRequestsPerSecond: 10,
+      maxTotalRequests: 2,
+    });
     limiter.recordStart();
     limiter.recordEnd();
     limiter.recordStart();
@@ -19,7 +27,11 @@ describe("ValidationRateLimiter", () => {
   });
 
   it("blocks once max concurrency is reached, and unblocks after recordEnd", () => {
-    const limiter = new ValidationRateLimiter({ maxConcurrent: 1, maxRequestsPerSecond: 10, maxTotalRequests: 10 });
+    const limiter = new ValidationRateLimiter({
+      maxConcurrent: 1,
+      maxRequestsPerSecond: 10,
+      maxTotalRequests: 10,
+    });
     limiter.recordStart();
     expect(limiter.canProceed().allowed).toBe(false);
     limiter.recordEnd();
@@ -27,7 +39,11 @@ describe("ValidationRateLimiter", () => {
   });
 
   it("blocks once the per-second rate limit is reached within the same second", () => {
-    const limiter = new ValidationRateLimiter({ maxConcurrent: 10, maxRequestsPerSecond: 2, maxTotalRequests: 10 });
+    const limiter = new ValidationRateLimiter({
+      maxConcurrent: 10,
+      maxRequestsPerSecond: 2,
+      maxTotalRequests: 10,
+    });
     const t0 = 1_000_000;
     limiter.recordStart(t0);
     limiter.recordEnd();
@@ -37,7 +53,11 @@ describe("ValidationRateLimiter", () => {
   });
 
   it("allows requests again once the rate-limit window has passed", () => {
-    const limiter = new ValidationRateLimiter({ maxConcurrent: 10, maxRequestsPerSecond: 1, maxTotalRequests: 10 });
+    const limiter = new ValidationRateLimiter({
+      maxConcurrent: 10,
+      maxRequestsPerSecond: 1,
+      maxTotalRequests: 10,
+    });
     const t0 = 1_000_000;
     limiter.recordStart(t0);
     limiter.recordEnd();
@@ -45,7 +65,11 @@ describe("ValidationRateLimiter", () => {
   });
 
   it("does not count a request toward totalRequestsIssued until recordStart is called", () => {
-    const limiter = new ValidationRateLimiter({ maxConcurrent: 5, maxRequestsPerSecond: 5, maxTotalRequests: 5 });
+    const limiter = new ValidationRateLimiter({
+      maxConcurrent: 5,
+      maxRequestsPerSecond: 5,
+      maxTotalRequests: 5,
+    });
     expect(limiter.totalRequestsIssued).toBe(0);
     limiter.recordStart();
     expect(limiter.totalRequestsIssued).toBe(1);

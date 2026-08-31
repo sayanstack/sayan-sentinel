@@ -34,7 +34,12 @@ describe("HealthController", () => {
 
   describe("ready", () => {
     it("delegates to HealthCheckService with both indicators", async () => {
-      healthCheckService.check.mockResolvedValue({ status: "ok", info: {}, error: {}, details: {} });
+      healthCheckService.check.mockResolvedValue({
+        status: "ok",
+        info: {},
+        error: {},
+        details: {},
+      });
 
       await controller.ready();
 

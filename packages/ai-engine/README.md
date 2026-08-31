@@ -18,7 +18,7 @@ Provider-agnostic AI reasoning layer: Anthropic / OpenAI / local OpenAI-compatib
   data, never the model's raw text, and nothing the model says triggers a
   tool call directly.
 - `BudgetGuard` rejects a call whose estimated cost would exceed the
-  per-scan or monthly budget *before* the call is made.
+  per-scan or monthly budget _before_ the call is made.
 
 ## Not yet built
 

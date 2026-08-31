@@ -56,7 +56,11 @@ export class GitleaksAdapter implements ScannerAdapter {
         return { status: "unavailable", reason: `"${this.bin}" is not installed or not on PATH` };
       }
       if (outcome.kind === "timeout") {
-        return { status: "failed", error: `gitleaks scan timed out after ${timeoutMs}ms`, durationMs };
+        return {
+          status: "failed",
+          error: `gitleaks scan timed out after ${timeoutMs}ms`,
+          durationMs,
+        };
       }
       if (outcome.kind === "error") {
         return { status: "failed", error: outcome.message, durationMs };
@@ -80,7 +84,11 @@ export class GitleaksAdapter implements ScannerAdapter {
       try {
         parsed = raw.trim() ? (JSON.parse(raw) as GitleaksOutput) : [];
       } catch {
-        return { status: "failed", error: `gitleaks produced non-JSON report: ${raw.slice(0, 500)}`, durationMs };
+        return {
+          status: "failed",
+          error: `gitleaks produced non-JSON report: ${raw.slice(0, 500)}`,
+          durationMs,
+        };
       }
 
       const findings = normalizeGitleaksOutput(parsed);

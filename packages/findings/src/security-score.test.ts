@@ -15,7 +15,11 @@ function finding(overrides: Partial<ScoredFindingInput>): ScoredFindingInput {
 
 describe("computeSecurityScore", () => {
   it("returns a perfect 100 with no findings", () => {
-    expect(computeSecurityScore([], NOW)).toEqual({ score: 100, openFindingCount: 0, breakdown: [] });
+    expect(computeSecurityScore([], NOW)).toEqual({
+      score: 100,
+      openFindingCount: 0,
+      breakdown: [],
+    });
   });
 
   it("excludes resolved, false-positive, and accepted-risk findings entirely", () => {
@@ -44,13 +48,22 @@ describe("computeSecurityScore", () => {
   });
 
   it("penalizes a critical finding more heavily than a low one at equal confidence/age", () => {
-    const criticalScore = computeSecurityScore([finding({ severity: "critical", confidence: "confirmed" })], NOW);
-    const lowScore = computeSecurityScore([finding({ severity: "low", confidence: "confirmed" })], NOW);
+    const criticalScore = computeSecurityScore(
+      [finding({ severity: "critical", confidence: "confirmed" })],
+      NOW,
+    );
+    const lowScore = computeSecurityScore(
+      [finding({ severity: "low", confidence: "confirmed" })],
+      NOW,
+    );
     expect(criticalScore.score).toBeLessThan(lowScore.score);
   });
 
   it("penalizes lower-confidence findings less than confirmed ones of the same severity", () => {
-    const confirmed = computeSecurityScore([finding({ severity: "high", confidence: "confirmed" })], NOW);
+    const confirmed = computeSecurityScore(
+      [finding({ severity: "high", confidence: "confirmed" })],
+      NOW,
+    );
     const low = computeSecurityScore([finding({ severity: "high", confidence: "low" })], NOW);
     expect(low.score).toBeGreaterThan(confirmed.score);
   });
@@ -81,7 +94,9 @@ describe("computeSecurityScore", () => {
 
   it("is deterministic for identical input", () => {
     const findings = [finding({ severity: "high" }), finding({ severity: "low" })];
-    expect(computeSecurityScore(findings, NOW).score).toBe(computeSecurityScore(findings, NOW).score);
+    expect(computeSecurityScore(findings, NOW).score).toBe(
+      computeSecurityScore(findings, NOW).score,
+    );
   });
 
   it("groups the breakdown by severity with correct counts", () => {

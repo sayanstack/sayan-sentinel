@@ -22,12 +22,20 @@ describe("createProviderFromConfig", () => {
   });
 
   it("returns an AnthropicProvider when the provider and key are both configured", () => {
-    const config = loadConfig({ ...baseEnv, AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test-key-not-real" });
+    const config = loadConfig({
+      ...baseEnv,
+      AI_PROVIDER: "anthropic",
+      ANTHROPIC_API_KEY: "test-key-not-real",
+    });
     expect(createProviderFromConfig(config)).toBeInstanceOf(AnthropicProvider);
   });
 
   it("returns an OpenAIProvider when configured for openai", () => {
-    const config = loadConfig({ ...baseEnv, AI_PROVIDER: "openai", OPENAI_API_KEY: "test-key-not-real" });
+    const config = loadConfig({
+      ...baseEnv,
+      AI_PROVIDER: "openai",
+      OPENAI_API_KEY: "test-key-not-real",
+    });
     expect(createProviderFromConfig(config)).toBeInstanceOf(OpenAIProvider);
   });
 

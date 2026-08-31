@@ -8,7 +8,9 @@ const PAST = new Date("2026-01-01T00:00:00Z");
 
 const publicResolver = async () => ["93.184.216.34"];
 
-function authorization(overrides: Partial<TargetAuthorizationRecord> = {}): TargetAuthorizationRecord {
+function authorization(
+  overrides: Partial<TargetAuthorizationRecord> = {},
+): TargetAuthorizationRecord {
   return {
     id: "auth-1",
     scheme: "https",
@@ -184,7 +186,12 @@ describe("evaluateScopeGuard", () => {
       url: "http://169.254.169.254/latest/meta-data/",
       tier: 0,
       authorizations: [
-        authorization({ scheme: "http", host: "169.254.169.254", port: 80, allowedPathPrefixes: [] }),
+        authorization({
+          scheme: "http",
+          host: "169.254.169.254",
+          port: 80,
+          allowedPathPrefixes: [],
+        }),
       ],
       localLabMode: false,
       now: NOW,

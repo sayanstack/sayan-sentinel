@@ -15,11 +15,15 @@ export function createProviderFromConfig(config: SentinelConfig): AIProvider | n
 
   switch (config.env.AI_PROVIDER) {
     case "anthropic":
-      return config.env.ANTHROPIC_API_KEY ? new AnthropicProvider(config.env.ANTHROPIC_API_KEY) : null;
+      return config.env.ANTHROPIC_API_KEY
+        ? new AnthropicProvider(config.env.ANTHROPIC_API_KEY)
+        : null;
     case "openai":
       return config.env.OPENAI_API_KEY ? new OpenAIProvider(config.env.OPENAI_API_KEY) : null;
     case "local":
-      return config.env.LOCAL_AI_BASE_URL ? new LocalOpenAICompatibleProvider(config.env.LOCAL_AI_BASE_URL) : null;
+      return config.env.LOCAL_AI_BASE_URL
+        ? new LocalOpenAICompatibleProvider(config.env.LOCAL_AI_BASE_URL)
+        : null;
     default:
       return null;
   }

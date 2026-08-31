@@ -143,7 +143,9 @@ describe("completeStructured", () => {
   });
 
   it("never sends a raw discovered secret from untrusted content to the provider", async () => {
-    const provider = new FakeProvider([JSON.stringify({ verdict: "vulnerable", reason: "hardcoded secret" })]);
+    const provider = new FakeProvider([
+      JSON.stringify({ verdict: "vulnerable", reason: "hardcoded secret" }),
+    ]);
 
     const result = await completeStructured({
       provider,

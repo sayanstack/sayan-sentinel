@@ -9,7 +9,11 @@ function isProcessEnv(expr: Node): boolean {
 }
 
 /** Detects `process.env.FOO` and `process.env["FOO"]` reads. */
-export function extractEnvUsage(ctx: CodeGraphBuilderContext, sourceFile: SourceFile, filePath: string): void {
+export function extractEnvUsage(
+  ctx: CodeGraphBuilderContext,
+  sourceFile: SourceFile,
+  filePath: string,
+): void {
   const fileNodeId = nodeId("file", filePath, filePath, 0);
 
   for (const access of sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)) {
@@ -33,7 +37,14 @@ function registerEnvRead(
   fileNodeId: string,
 ): void {
   const envNodeId = syntheticNodeId("env_var", varName);
-  ctx.addNode({ id: envNodeId, kind: "env_var", filePath: "", name: varName, lineStart: 0, lineEnd: 0 });
+  ctx.addNode({
+    id: envNodeId,
+    kind: "env_var",
+    filePath: "",
+    name: varName,
+    lineStart: 0,
+    lineEnd: 0,
+  });
 
   const scopeId = nearestScopeNodeId(siteNode, filePath) ?? fileNodeId;
   ctx.addEdge({

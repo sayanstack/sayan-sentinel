@@ -1,7 +1,16 @@
 import { createProviderFromConfig } from "@sayan-sentinel/ai-engine";
-import { buildCodeGraphFromDirectory, cloneRepositoryAtCommit, walkRepositoryFiles } from "@sayan-sentinel/code-intelligence";
+import {
+  buildCodeGraphFromDirectory,
+  cloneRepositoryAtCommit,
+  walkRepositoryFiles,
+} from "@sayan-sentinel/code-intelligence";
 import type { SentinelConfig } from "@sayan-sentinel/config";
-import { GitleaksAdapter, OsvScannerAdapter, SemgrepAdapter, type ScannerAdapter } from "@sayan-sentinel/security-engine";
+import {
+  GitleaksAdapter,
+  OsvScannerAdapter,
+  SemgrepAdapter,
+  type ScannerAdapter,
+} from "@sayan-sentinel/security-engine";
 import { DEFAULT_POLICY_RULES } from "@sayan-sentinel/policy-engine";
 import type { ConnectionOptions, Job } from "bullmq";
 import { Worker } from "bullmq";
@@ -34,7 +43,10 @@ function buildDependencies(config: SentinelConfig): ScanPipelineDependencies {
  * reachable Redis — see the honesty note in scan-queue.ts; this has not
  * been run against a live queue in this environment.
  */
-export function startScanWorker(config: SentinelConfig, connection: ConnectionOptions): Worker<ScanJobData> {
+export function startScanWorker(
+  config: SentinelConfig,
+  connection: ConnectionOptions,
+): Worker<ScanJobData> {
   const deps = buildDependencies(config);
 
   return new Worker<ScanJobData, ScanPipelineResult>(

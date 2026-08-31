@@ -76,7 +76,10 @@ function ageMultiplier(firstSeenAt: Date, now: Date): number {
  * - The score floors at 0 (never negative) and is always deterministic —
  *   the same finding set produces the same score, never a random one.
  */
-export function computeSecurityScore(findings: ScoredFindingInput[], now: Date = new Date()): SecurityScoreResult {
+export function computeSecurityScore(
+  findings: ScoredFindingInput[],
+  now: Date = new Date(),
+): SecurityScoreResult {
   let totalPenalty = 0;
   let openFindingCount = 0;
   const breakdownMap = new Map<Severity, SecurityScoreBreakdownEntry>();

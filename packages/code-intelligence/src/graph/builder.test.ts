@@ -56,7 +56,11 @@ describe("buildCodeGraphFromSources", () => {
       `,
     });
 
-    expect(nodesOfKind(graph, "function").map((n) => n.name).sort()).toEqual(["arrowFn", "namedFn"]);
+    expect(
+      nodesOfKind(graph, "function")
+        .map((n) => n.name)
+        .sort(),
+    ).toEqual(["arrowFn", "namedFn"]);
     expect(nodesOfKind(graph, "class").map((n) => n.name)).toEqual(["Widget"]);
     expect(nodesOfKind(graph, "method").map((n) => n.name)).toEqual(["Widget.build"]);
   });
@@ -71,7 +75,11 @@ describe("buildCodeGraphFromSources", () => {
 
     const routes = nodesOfKind(graph, "route");
     expect(routes).toHaveLength(1);
-    expect(routes[0]?.metadata).toMatchObject({ framework: "express", httpMethod: "GET", path: "/users" });
+    expect(routes[0]?.metadata).toMatchObject({
+      framework: "express",
+      httpMethod: "GET",
+      path: "/users",
+    });
     expect(edgesOfKind(graph, "EXPOSES_ROUTE")).toHaveLength(1);
   });
 
@@ -101,7 +109,9 @@ describe("buildCodeGraphFromSources", () => {
       `,
     });
 
-    const envVars = nodesOfKind(graph, "env_var").map((n) => n.name).sort();
+    const envVars = nodesOfKind(graph, "env_var")
+      .map((n) => n.name)
+      .sort();
     expect(envVars).toEqual(["API_KEY", "OTHER_VAR"]);
 
     const readEdges = edgesOfKind(graph, "READS_FROM");
@@ -155,7 +165,9 @@ describe("buildCodeGraphFromSources", () => {
     expect(edgesOfKind(graph, "AUTHENTICATES")).toHaveLength(1);
     expect(edgesOfKind(graph, "AUTHORIZES")).toHaveLength(1);
 
-    const guardNames = nodesOfKind(graph, "guard").map((n) => n.name).sort();
+    const guardNames = nodesOfKind(graph, "guard")
+      .map((n) => n.name)
+      .sort();
     expect(guardNames).toEqual(["JwtAuthGuard", "RolesGuard"]);
   });
 });

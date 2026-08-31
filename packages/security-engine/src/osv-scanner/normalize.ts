@@ -38,7 +38,11 @@ function resolveFixedVersion(vuln: OsvVulnerability): string | undefined {
   return undefined;
 }
 
-function toFindingDraft(source: OsvSourceResult, pkg: OsvPackageResult, vuln: OsvVulnerability): FindingDraft {
+function toFindingDraft(
+  source: OsvSourceResult,
+  pkg: OsvPackageResult,
+  vuln: OsvVulnerability,
+): FindingDraft {
   const fixedVersion = resolveFixedVersion(vuln);
   const packageLabel = `${pkg.package.name}@${pkg.package.version}`;
 
@@ -62,7 +66,9 @@ function toFindingDraft(source: OsvSourceResult, pkg: OsvPackageResult, vuln: Os
     primarySource: "dependency_analysis",
     filePath: source.source.path,
     symbol: packageLabel,
-    remediation: fixedVersion ? `Upgrade ${pkg.package.name} to ${fixedVersion} or later.` : undefined,
+    remediation: fixedVersion
+      ? `Upgrade ${pkg.package.name} to ${fixedVersion} or later.`
+      : undefined,
     evidence: [
       {
         source: "dependency_analysis",

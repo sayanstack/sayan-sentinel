@@ -20,7 +20,9 @@ describe("redactSecretsInText", () => {
   });
 
   it("redacts a GitHub personal access token", () => {
-    const { redacted, foundLabels } = redactSecretsInText("token=ghp_abcdefghijklmnopqrstuvwxyz0123456789");
+    const { redacted, foundLabels } = redactSecretsInText(
+      "token=ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+    );
     expect(redacted).not.toContain("ghp_abcdefghijklmnopqrstuvwxyz0123456789");
     expect(foundLabels).toContain("github-token");
   });
