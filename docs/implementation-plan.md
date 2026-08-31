@@ -37,6 +37,40 @@ Status legend: `not started` · `in progress` · `done`
 | 26    | API Security Engine: OpenAPI import + endpoint inventory + SENTINEL-API-1xx                 | done — see notes below                                                   |
 | 27    | Full Stack Scan orchestration + worker pipeline wiring                                      | done — see notes below                                                   |
 | 28    | Web Targets dashboard UI (real, browser-verified)                                           | done — see notes below                                                   |
+| 29    | Scan result persistence (fixed a real pre-existing gap)                                     | done — see notes below                                                   |
+
+## Phase 29 — Scan result persistence
+
+Full writeup in [docs/dashboard-persistence.md](dashboard-persistence.md).
+This wasn't on the original punch list — it was **discovered** while
+scoping the Attack Surface page: `apps/api`'s dashboard service has read
+`prisma.scan`/`prisma.finding` since an earlier phase, but nothing in
+the codebase ever wrote to those tables. Every scan (the original
+`runScanPipeline` and this run's `runFullStackScanPipeline` alike)
+computed its result in-memory and returned it from the BullMQ job only —
+a real dashboard would always have shown zero scans and zero findings.
+Flagging and fixing this rather than building a new UI on top of a
+foundation that silently couldn't work.
+
+**Built**: `persistScanResult` (`apps/worker/src/persistence/`) writes a
+real `Scan` row and upserts `Finding` rows keyed by the existing
+`(repositoryId, fingerprint)` constraint. A human's
+false-positive/resolved/accepted-risk triage decision survives a
+re-scan (the update path never touches `status`); evidence rows are
+replaced rather than accumulated across scans. Wired into
+`scan-worker.ts` — persistence runs whenever the job carries a
+`repositoryId` (two new optional `ScanJobData` fields:
+`repositoryId`, `trigger`), and is skipped (not guessed) otherwise. 5
+tests, the first in `apps/worker` to mock `@sayan-sentinel/database`
+directly.
+
+**Explicitly deferred**: no `ScanJob` per-phase sub-rows, no
+resolved-finding detection (a finding that stops being reported just
+stops updating, rather than being flagged as no-longer-observed), no
+`AIUsage` rows, and — the piece that actually blocks a real Attack
+Surface / Application Graph page — no persistence of `web.crawl`,
+`routeCorrelation`, or `code.graph` at all; only `correlatedFindings`
+survive past the job's in-memory return value today.
 
 ## Phase 28 — Web Targets dashboard UI
 

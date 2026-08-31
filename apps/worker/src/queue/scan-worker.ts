@@ -21,6 +21,7 @@ import type {
   FullStackScanResult,
 } from "../pipeline/full-stack-scan-types";
 import type { ScanPipelineDependencies } from "../pipeline/types";
+import { persistScanResult } from "../persistence/persist-scan-result";
 import { SCAN_QUEUE_NAME, type ScanJobData } from "./queue-names";
 
 function buildScanners(config: SentinelConfig): ScannerAdapter[] {
@@ -58,6 +59,14 @@ function buildDependencies(config: SentinelConfig): FullStackScanDependencies {
  * Stack Scan are the same code path, distinguished only by whether
  * `job.data.webTarget` is present, so there's no risk of the two drifting
  * apart into separately-maintained pipelines.
+ *
+ * When `job.data.repositoryId` is present, the result is also persisted
+ * via `persistScanResult` — a real `Scan` row plus upserted `Finding`
+ * rows the dashboard's existing `prisma.scan`/`prisma.finding` reads can
+ * finally show real data for. A job with no `repositoryId` (e.g. an
+ * ad-hoc scan of an unregistered clone) still runs the full scan and
+ * returns its result from the job — it just isn't written to a
+ * repository's row, since there isn't one to write it against.
  */
 export function startScanWorker(
   config: SentinelConfig,
@@ -68,7 +77,7 @@ export function startScanWorker(
   return new Worker<ScanJobData, FullStackScanResult>(
     SCAN_QUEUE_NAME,
     async (job: Job<ScanJobData>) => {
-      return runFullStackScanPipeline(
+      const result = await runFullStackScanPipeline(
         {
           code: {
             repositoryUrl: job.data.repositoryUrl,
@@ -82,6 +91,17 @@ export function startScanWorker(
         },
         deps,
       );
+
+      if (job.data.repositoryId) {
+        await persistScanResult({
+          repositoryId: job.data.repositoryId,
+          commitSha: job.data.commitSha,
+          trigger: job.data.trigger ?? "MANUAL",
+          result,
+        });
+      }
+
+      return result;
     },
     { connection, concurrency: 1 },
   );

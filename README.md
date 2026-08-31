@@ -128,6 +128,15 @@ This repository is being built in public, phase by phase, tracked in
   end-to-end against real routes extracted by the Rules Engine's AST
   parser, not just tested in isolation. See
   [docs/source-runtime-correlation.md](docs/source-runtime-correlation.md).
+- ✅ Scan result persistence (`apps/worker/src/persistence/
+persist-scan-result.ts`) — fixed a real pre-existing gap: the
+  dashboard has read `prisma.scan`/`prisma.finding` since an earlier
+  phase, but nothing ever wrote to them. Now every completed scan
+  (given a `repositoryId`) writes a real `Scan` row and upserts real
+  `Finding` rows, keyed by the existing fingerprint — a human's
+  false-positive/resolved decision survives a re-scan, since `status`
+  is never touched on update. See
+  [docs/dashboard-persistence.md](docs/dashboard-persistence.md).
 - ✅ Full Stack Scan orchestration (`apps/worker/src/pipeline/
 run-full-stack-scan-pipeline.ts`) — the existing code scan pipeline,
   unchanged, plus (only when a verified target is supplied) a bounded

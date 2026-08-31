@@ -1,0 +1,147 @@
+import { Prisma, prisma } from "@sayan-sentinel/database";
+import type { CorrelatedFinding } from "@sayan-sentinel/findings";
+import type { ConfidenceLevel, FindingSource, Severity } from "@sayan-sentinel/shared";
+import type { FullStackScanResult } from "../pipeline/full-stack-scan-types";
+
+const SEVERITY_MAP: Record<Severity, "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO"> = {
+  critical: "CRITICAL",
+  high: "HIGH",
+  medium: "MEDIUM",
+  low: "LOW",
+  info: "INFO",
+};
+
+const CONFIDENCE_MAP: Record<ConfidenceLevel, "CONFIRMED" | "HIGH" | "MEDIUM" | "LOW"> = {
+  confirmed: "CONFIRMED",
+  high: "HIGH",
+  medium: "MEDIUM",
+  low: "LOW",
+};
+
+const SOURCE_MAP: Record<
+  FindingSource,
+  | "STATIC_ANALYSIS"
+  | "SECRET_DETECTION"
+  | "DEPENDENCY_ANALYSIS"
+  | "CODE_INTELLIGENCE"
+  | "RULES_ENGINE"
+  | "WEB_SECURITY"
+  | "API_SECURITY"
+  | "AI_REVIEW"
+  | "DYNAMIC_VALIDATION"
+> = {
+  static_analysis: "STATIC_ANALYSIS",
+  secret_detection: "SECRET_DETECTION",
+  dependency_analysis: "DEPENDENCY_ANALYSIS",
+  code_intelligence: "CODE_INTELLIGENCE",
+  rules_engine: "RULES_ENGINE",
+  web_security: "WEB_SECURITY",
+  api_security: "API_SECURITY",
+  ai_review: "AI_REVIEW",
+  dynamic_validation: "DYNAMIC_VALIDATION",
+};
+
+export interface PersistScanResultInput {
+  repositoryId: string;
+  commitSha: string;
+  trigger: "MANUAL" | "PUSH" | "PULL_REQUEST" | "SCHEDULED";
+  result: FullStackScanResult;
+}
+
+export interface PersistScanResultOutput {
+  scanId: string;
+}
+
+/**
+ * Writes a completed scan's results to the database: one `Scan` row, and
+ * one `Finding` row per correlated finding — upserted by the existing
+ * `(repositoryId, fingerprint)` unique constraint so the same underlying
+ * issue re-detected across scans updates its `lastSeenScanId` rather than
+ * duplicating. This is the first code in the repository to actually write
+ * to these tables — `apps/api`'s dashboard has read from `prisma.scan`/
+ * `prisma.finding` since an earlier phase, but nothing populated them
+ * until now (documented in docs/dashboard-persistence.md).
+ *
+ * **A human's triage decision survives a re-scan**: `status` is set to
+ * `OPEN` only when a `Finding` row is first created; an update never
+ * touches `status`, so a finding a human already marked
+ * `false_positive`/`resolved`/`accepted_risk` stays that way even though
+ * the detector still reports it every scan. Severity/confidence/
+ * description *do* refresh on every scan, since those are detector-
+ * computed properties, not human judgments.
+ *
+ * **Evidence rows are replaced, not accumulated**: a finding's old
+ * `FindingEvidence` rows are deleted before this scan's evidence is
+ * inserted, so the evidence list reflects the latest scan rather than
+ * growing an unbounded history of every past detection.
+ */
+export async function persistScanResult(
+  input: PersistScanResultInput,
+): Promise<PersistScanResultOutput> {
+  const scan = await prisma.scan.create({
+    data: {
+      repositoryId: input.repositoryId,
+      commitSha: input.commitSha,
+      trigger: input.trigger,
+      status: "COMPLETED",
+      startedAt: new Date(Date.now() - input.result.durationMs),
+      completedAt: new Date(),
+      durationMs: input.result.durationMs,
+      securityScore: input.result.securityScore.score,
+    },
+  });
+
+  for (const finding of input.result.correlatedFindings) {
+    await upsertFinding(input.repositoryId, scan.id, finding);
+  }
+
+  return { scanId: scan.id };
+}
+
+async function upsertFinding(
+  repositoryId: string,
+  scanId: string,
+  finding: CorrelatedFinding,
+): Promise<void> {
+  const findingRow = await prisma.finding.upsert({
+    where: { repositoryId_fingerprint: { repositoryId, fingerprint: finding.fingerprint } },
+    create: {
+      repositoryId,
+      fingerprint: finding.fingerprint,
+      category: finding.category,
+      cwe: finding.cwe,
+      owaspCategory: finding.owaspCategory,
+      title: finding.title,
+      description: finding.description,
+      severity: SEVERITY_MAP[finding.severity],
+      confidence: CONFIDENCE_MAP[finding.confidence],
+      primarySource: SOURCE_MAP[finding.primarySource],
+      filePath: finding.filePath,
+      lineStart: finding.lineStart,
+      lineEnd: finding.lineEnd,
+      symbol: finding.symbol,
+      remediation: finding.remediation,
+      firstSeenScanId: scanId,
+      lastSeenScanId: scanId,
+    },
+    update: {
+      severity: SEVERITY_MAP[finding.severity],
+      confidence: CONFIDENCE_MAP[finding.confidence],
+      description: finding.description,
+      remediation: finding.remediation,
+      lastSeenScanId: scanId,
+    },
+  });
+
+  await prisma.findingEvidence.deleteMany({ where: { findingId: findingRow.id } });
+  for (const evidence of finding.evidence) {
+    await prisma.findingEvidence.create({
+      data: {
+        findingId: findingRow.id,
+        source: SOURCE_MAP[evidence.source],
+        scanner: evidence.scanner,
+        detail: evidence.detail as Prisma.InputJsonValue,
+      },
+    });
+  }
+}
