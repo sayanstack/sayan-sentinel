@@ -26,16 +26,22 @@ const DEFAULT_LINE_PROXIMITY = 2;
  * wins; the Sentinel Rules Engine produces structured, evidence-first
  * findings (source/sink/trace/guards) from first-party AST and data-flow
  * analysis, which is more precise than generic pattern-matching, so it
- * ranks next; static analysis tends to have the most precise rule-based
- * message after that; AI review adds business-logic context but no more
- * certainty than static analysis; secret/dependency/code-intelligence
- * findings are narrowest in scope. This ordering only decides whose title/
- * description/category "wins" for display — severity and confidence are
- * computed across the whole group, not taken from the representative alone.
+ * ranks next; web/API security findings are directly observed facts about
+ * a live target (a header genuinely was missing, a cookie genuinely had no
+ * Secure attribute) rather than inference, so they rank alongside the
+ * Rules Engine, ahead of generic static analysis; static analysis tends to
+ * have the most precise rule-based message after that; AI review adds
+ * business-logic context but no more certainty than static analysis;
+ * secret/dependency/code-intelligence findings are narrowest in scope.
+ * This ordering only decides whose title/description/category "wins" for
+ * display — severity and confidence are computed across the whole group,
+ * not taken from the representative alone.
  */
 const REPRESENTATIVE_PRIORITY: FindingSource[] = [
   "dynamic_validation",
   "rules_engine",
+  "web_security",
+  "api_security",
   "static_analysis",
   "ai_review",
   "secret_detection",

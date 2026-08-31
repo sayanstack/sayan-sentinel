@@ -48,6 +48,7 @@ export async function analyzeCors(
         severity: "high",
         confidence: "high",
         reason: `Detected: Access-Control-Allow-Origin reflected the probe origin "${PROBE_ORIGIN}" verbatim, with credentials enabled.`,
+        url: targetUrl,
         evidence,
         remediation:
           "Validate the Origin header against an explicit allowlist of trusted origins instead of " +
@@ -69,6 +70,7 @@ export async function analyzeCors(
         severity: "medium",
         confidence: "high",
         reason: "Detected: wildcard Access-Control-Allow-Origin combined with credentials enabled.",
+        url: targetUrl,
         evidence,
         remediation:
           "Use an explicit origin allowlist, never a wildcard, whenever credentials are enabled.",
@@ -88,6 +90,7 @@ export async function analyzeCors(
         severity: "info",
         confidence: "high",
         reason: 'Detected: Access-Control-Allow-Origin is "*", no credentials enabled.',
+        url: targetUrl,
         evidence,
         remediation:
           "Confirm this endpoint is intended to be publicly accessible cross-origin; if not, restrict " +

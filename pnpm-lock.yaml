@@ -199,6 +199,12 @@ importers:
       '@sayan-sentinel/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@sayan-sentinel/source-runtime-correlation':
+        specifier: workspace:*
+        version: link:../../packages/source-runtime-correlation
+      '@sayan-sentinel/web-security-engine':
+        specifier: workspace:*
+        version: link:../../packages/web-security-engine
       bullmq:
         specifier: ^6.3.3
         version: 6.3.3(ioredis@6.0.0)

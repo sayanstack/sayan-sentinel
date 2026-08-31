@@ -35,6 +35,45 @@ Status legend: `not started` · `in progress` · `done`
 | 24    | Target Authorization API (create/verify/list/revoke)                                        | done — see notes below                                                   |
 | 25    | Web Discovery Engine: bounded crawler (robots.txt, sitemap.xml, forms)                      | done — see notes below                                                   |
 | 26    | API Security Engine: OpenAPI import + endpoint inventory + SENTINEL-API-1xx                 | done — see notes below                                                   |
+| 27    | Full Stack Scan orchestration + worker pipeline wiring                                      | done — see notes below                                                   |
+
+## Phase 27 — Full Stack Scan orchestration
+
+Full writeup in [docs/full-stack-scan.md](full-stack-scan.md). This is
+the integration point every prior phase in this run was building toward.
+
+**Built**: `runFullStackScanPipeline` in `apps/worker` — the existing
+code scan pipeline unchanged, plus (only with a verified web target)
+`BoundedCrawler` + full `scanUrl` analysis of every discovered page +
+real source-to-runtime route correlation (via
+`source-runtime-correlation`, using `rules-engine`'s actual AST route
+extractor, not the coarser `code-intelligence` graph). Added
+`"web_security"`/`"api_security"` to the shared `FindingSource`
+vocabulary (mirroring the earlier `"rules_engine"` addition) and a
+`webFindingToDraft` mapper so web findings flow through the same
+`correlateFindings`/`computeSecurityScore` pipeline the code side uses.
+Wired into the real BullMQ worker (`scan-worker.ts`) — every job now
+runs through this one pipeline, distinguished only by whether
+`job.data.webTarget` is present, so a code-only path and a full-stack
+path can't drift into separately-maintained implementations. 4 tests,
+run against a real temporary directory with a real fixture file (genuine
+AST route extraction, not a mocked file system).
+
+**Two limitations documented rather than hidden**: no cross-layer
+finding correlation (a code finding and a web finding about the same
+endpoint are never merged into one entry — `computeFingerprint` bakes
+the detector source into the hash by design, so this needs a
+route-keyed correlation pass that doesn't exist yet; `routeCorrelation`
+already carries the linkage for a human or future pass to use), and the
+repository is cloned/walked twice (once inside the existing
+`runScanPipeline`, once here for route extraction) since changing that
+function's return contract would touch every existing caller.
+
+**Explicitly deferred**: no `ScanJob`/`Scan` persistence wired to this
+pipeline (results aren't saved anywhere yet), no dashboard surface, no
+Application Graph, no Attack Surface page, and no automatic enqueueing
+when a repository has a linked deployment — a caller constructs
+`webTarget` and enqueues the job manually today.
 
 ## Phase 26 — API Security Engine
 

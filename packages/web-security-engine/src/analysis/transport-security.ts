@@ -25,6 +25,7 @@ export function analyzeTransportSecurity(response: SafeHttpResponse): WebFinding
       severity: "low",
       confidence: "high",
       reason: "Detected: no Strict-Transport-Security header on an HTTPS response.",
+      url: response.url,
       evidence: [{ label: "URL", detail: response.url }],
       remediation:
         "Add a `Strict-Transport-Security: max-age=31536000; includeSubDomains` response header (adjust `max-age` and `includeSubDomains` to your deployment).",

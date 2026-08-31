@@ -116,8 +116,8 @@ This repository is being built in public, phase by phase, tracked in
   Secure/HttpOnly, debug info exposure, missing HSTS), and a bounded,
   same-origin-only crawler (`BoundedCrawler` — depth/page/duration
   budgets, robots.txt respect, sitemap.xml seeding, form discovery with
-  no auto-submission). 73 tests. Still no API Security Engine, and
-  nothing here is wired into the worker's job pipeline yet. See
+  no auto-submission). 76 tests. Now wired into the real Full Stack Scan
+  worker pipeline (see below). See
   [docs/web-security-engine.md](docs/web-security-engine.md).
 - ✅ `packages/source-runtime-correlation` — the Source-to-Runtime
   platform's flagship correlation piece: deterministic route
@@ -128,6 +128,16 @@ This repository is being built in public, phase by phase, tracked in
   end-to-end against real routes extracted by the Rules Engine's AST
   parser, not just tested in isolation. See
   [docs/source-runtime-correlation.md](docs/source-runtime-correlation.md).
+- ✅ Full Stack Scan orchestration (`apps/worker/src/pipeline/
+run-full-stack-scan-pipeline.ts`) — the existing code scan pipeline,
+  unchanged, plus (only when a verified target is supplied) a bounded
+  crawl, full Web Security Engine analysis of every discovered page, and
+  real source-to-runtime route correlation with extracted path
+  parameters, combined into one findings list and one recomputed
+  Security Score. Wired into the actual BullMQ scan worker — an ordinary
+  code scan and a Full Stack Scan are the same code path now. Honestly
+  documents what it doesn't do yet (no cross-layer finding correlation,
+  no dashboard surface). See [docs/full-stack-scan.md](docs/full-stack-scan.md).
 - ✅ `packages/api-security-engine` — OpenAPI (JSON/YAML) import, an
   endpoint inventory cross-referencing declared vs. observed endpoints
   (reusing `source-runtime-correlation`'s matcher, not a second

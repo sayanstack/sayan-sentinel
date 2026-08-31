@@ -24,6 +24,8 @@
     "@sayan-sentinel/rules-engine": "workspace:*",
     "@sayan-sentinel/security-engine": "workspace:*",
     "@sayan-sentinel/shared": "workspace:*",
+    "@sayan-sentinel/source-runtime-correlation": "workspace:*",
+    "@sayan-sentinel/web-security-engine": "workspace:*",
     "bullmq": "^6.3.3"
   },
   "devDependencies": {

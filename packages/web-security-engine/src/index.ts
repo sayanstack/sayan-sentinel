@@ -25,3 +25,4 @@ export {
   fetchSitemapUrls,
   isPathDisallowed,
 } from "./discovery/robots-sitemap";
+export { webFindingToDraft } from "./findings/mapper";

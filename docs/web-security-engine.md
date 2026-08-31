@@ -137,30 +137,37 @@ discovery.
 
 ## What's NOT here
 
-There is no endpoint/API discovery beyond what plain link-following and
-sitemap parsing find (no OpenAPI import, no GraphQL introspection), no
+There is no OpenAPI/GraphQL-based endpoint discovery in this package
+itself (that lives in `@sayan-sentinel/api-security-engine`) and no
 authenticated-scan support (every crawl and passive check runs
-unauthenticated — there's no `AuthenticationProfile` concept here yet),
-and no wiring into the worker's job pipeline or the dashboard — nothing
-in `apps/worker` yet calls `BoundedCrawler`/`scanUrl` as a real job type.
+unauthenticated — there's no `AuthenticationProfile` concept here yet).
 This package's connection to persisted state is one-directional: a
-caller can look up a real `TargetAuthorization` via `apps/api/src/
-targets/` (see [docs/target-authorization.md](target-authorization.md))
-and convert it with `toScopeGuardRecord` into what `SafeHttpClient`
-expects, but nothing here reaches into the database on its own — the
-package stays persistence-independent by design, matching
+caller looks up a real `TargetAuthorization` via `apps/api/src/targets/`
+(see [docs/target-authorization.md](target-authorization.md)) and
+converts it with `toScopeGuardRecord` into what `SafeHttpClient` expects
+— nothing here reaches into the database on its own, keeping the package
+persistence-independent by design, matching
 `source-runtime-correlation`'s approach.
+
+**Now wired into a real pipeline**: `apps/worker/src/pipeline/
+run-full-stack-scan-pipeline.ts` calls `BoundedCrawler` and `scanUrl` as
+part of a real Full Stack Scan job, and `webFindingToDraft`
+(`findings/mapper.ts`) maps every finding into the shared correlation
+model with `primarySource: "web_security"`. See
+[docs/full-stack-scan.md](full-stack-scan.md).
 
 ## Testing
 
-73 tests across 10 files. `SafeHttpClient.test.ts` (11 — Scope Guard
+76 tests across 11 files. `SafeHttpClient.test.ts` (11 — Scope Guard
 enforcement, method allowlisting, the redirect-escape refusal, redirect-
 count exhaustion, streamed-body truncation, timeout-vs-network-error
 distinction, custom headers, Set-Cookie collection), the discovery suite
 (`url-canonicalize.test.ts`, `html-extract.test.ts`,
 `robots-sitemap.test.ts`, `BoundedCrawler.test.ts` — same-origin
 enforcement, depth/page budget truncation, dedup, robots.txt respect,
-form extraction, and a Scope-Guard-denial-recorded-not-thrown case), one
+form extraction, and a Scope-Guard-denial-recorded-not-thrown case),
+`findings/mapper.test.ts` (3 — stable/distinct fingerprints, correct
+`primarySource`), one
 test file per
 rule (true/false-positive cases, severity discipline), and
 `WebSecurityEngine.test.ts` (orchestration, including the "unreachable

@@ -36,6 +36,7 @@ export function analyzeDebugExposure(response: SafeHttpResponse): WebFinding[] {
       severity: isErrorStatus ? "medium" : "low",
       confidence: "medium",
       reason: `Detected: response body matches a ${label} signature on an HTTP ${response.status} response.`,
+      url: response.url,
       evidence: [
         { label: "Signature", detail: label },
         { label: "HTTP status", detail: String(response.status) },

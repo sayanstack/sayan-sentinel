@@ -49,6 +49,7 @@ export function analyzeCookies(response: SafeHttpResponse): WebFinding[] {
         severity: sensitive ? "medium" : "low",
         confidence: "high",
         reason: `Detected: Set-Cookie for "${cookie.name}" has no Secure attribute.`,
+        url: response.url,
         evidence: [
           { label: "Cookie name", detail: cookie.name },
           { label: "Set-Cookie header", detail: header },
@@ -65,6 +66,7 @@ export function analyzeCookies(response: SafeHttpResponse): WebFinding[] {
         severity: sensitive ? "medium" : "info",
         confidence: "high",
         reason: `Detected: Set-Cookie for "${cookie.name}" has no HttpOnly attribute.`,
+        url: response.url,
         evidence: [
           { label: "Cookie name", detail: cookie.name },
           { label: "Set-Cookie header", detail: header },

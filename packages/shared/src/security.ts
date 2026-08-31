@@ -28,6 +28,8 @@ export const FINDING_SOURCES = [
   "dependency_analysis",
   "code_intelligence",
   "rules_engine",
+  "web_security",
+  "api_security",
   "ai_review",
   "dynamic_validation",
 ] as const;
