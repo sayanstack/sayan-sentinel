@@ -34,6 +34,32 @@ Status legend: `not started` · `in progress` · `done`
 | 23    | Source-to-Runtime Correlation: route normalization + path matching                          | done — see notes below                                                   |
 | 24    | Target Authorization API (create/verify/list/revoke)                                        | done — see notes below                                                   |
 | 25    | Web Discovery Engine: bounded crawler (robots.txt, sitemap.xml, forms)                      | done — see notes below                                                   |
+| 26    | API Security Engine: OpenAPI import + endpoint inventory + SENTINEL-API-1xx                 | done — see notes below                                                   |
+
+## Phase 26 — API Security Engine
+
+Full writeup in [docs/api-security-engine.md](api-security-engine.md).
+
+**Built**: `packages/api-security-engine` — OpenAPI/Swagger JSON/YAML
+import (`yaml` package; the one non-"dependency-free-by-design" addition
+in this run of phases, since parsing a defined interchange format isn't
+part of the trust boundary the project keeps hand-rolled elsewhere), an
+endpoint inventory that cross-references declared vs. observed endpoints
+by reusing `@sayan-sentinel/source-runtime-correlation`'s matcher (an
+OpenAPI path's `{param}` is substituted with a literal placeholder,
+turning it into a "concrete path" the existing matcher already knows how
+to compare against another pattern — no second matching implementation),
+and 4 rules: `SENTINEL-API-101` (undocumented endpoint), `102`
+(documented-but-unobserved, `info` only), `103` (auth-requirement
+mismatch — only fires when the document demonstrably requires auth
+elsewhere, avoiding noise on an all-public API), `104` (resource-ID-
+shaped path parameter, informational, meant for cross-referencing against
+the Rules Engine's `SENTINEL-AUTHZ-001`). 23 tests.
+
+**Explicitly deferred**: no GraphQL introspection, no safety-tier scan-
+plan generation, no automated cross-referencing between API-104 and
+actual AUTHZ-001 findings (a human has to do that today), and no
+job-pipeline/dashboard wiring.
 
 ## Phase 25 — Web Discovery Engine (bounded crawler)
 

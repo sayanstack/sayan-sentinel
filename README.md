@@ -128,6 +128,13 @@ This repository is being built in public, phase by phase, tracked in
   end-to-end against real routes extracted by the Rules Engine's AST
   parser, not just tested in isolation. See
   [docs/source-runtime-correlation.md](docs/source-runtime-correlation.md).
+- ✅ `packages/api-security-engine` — OpenAPI (JSON/YAML) import, an
+  endpoint inventory cross-referencing declared vs. observed endpoints
+  (reusing `source-runtime-correlation`'s matcher, not a second
+  implementation), and 4 `SENTINEL-API-1xx` findings (undocumented
+  endpoint, undiscovered documented endpoint, auth-requirement mismatch,
+  potential resource-authorization surface). Not wired into any scan
+  pipeline yet. See [docs/api-security-engine.md](docs/api-security-engine.md).
 - ✅ Target Authorization API (`apps/api/src/targets/`) — real create/
   verify/list/revoke endpoints backed by the `TargetAuthorization` Prisma
   model, wired to the DNS TXT/HTTP well-known verification primitives and
@@ -263,6 +270,7 @@ packages/
   rules-engine/        Sentinel Rules Engine — AST/call-graph/taint-based SAST, no AI required
   web-security-engine/ SafeHttpClient + passive web security rules (CORS, cookies, headers)
   source-runtime-correlation/ route normalization + source<->runtime path matching
+  api-security-engine/ OpenAPI import + endpoint inventory + SENTINEL-API-1xx rules
   shared/              cross-cutting types/utilities
   config/              typed environment/config loading
 examples/
