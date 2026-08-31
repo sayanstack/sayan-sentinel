@@ -88,6 +88,12 @@ This repository is being built in public, phase by phase, tracked in
   scanner/AI failures degrading gracefully rather than aborting the scan.
   The BullMQ queue wiring is genuine but unexercised against a live Redis
   (none available in this environment) — noted plainly, not glossed over.
+- ✅ `examples/vulnerable-demo-app` — a small, intentionally vulnerable
+  fixture (broken object authorization, open redirect, path traversal,
+  `eval()` on user input, a SQL-injection-shaped query, a fabricated
+  hard-coded secret, and a pinned known-vulnerable dependency), verified
+  by an integration test that runs the real ingestion + AST pipeline
+  against it on disk.
 - 🚧 Everything else — remediation/PR workflow, findings persistence,
   frontend — is under active development. Nothing not listed above should
   be assumed to work yet.

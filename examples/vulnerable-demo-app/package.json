@@ -1,0 +1,14 @@
+{
+  "name": "sentinel-vulnerable-demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Intentionally vulnerable fixture for Sayan Sentinel's local demo mode. Do not deploy.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "lodash": "4.17.15"
+  }
+}

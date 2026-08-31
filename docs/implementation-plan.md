@@ -23,7 +23,7 @@ Status legend: `not started` · `in progress` · `done`
 | 13 | Policy engine + worker job pipeline | done |
 | 13b | Remediation / patch / PR workflow (patch generation, approval, PR creation) | not started |
 | 14 | Frontend (Next.js, dashboard, code graph, findings) | not started |
-| 15 | Vulnerable demo fixture | not started |
+| 15 | Vulnerable demo fixture | done |
 | 16 | Tests + security regression suite | not started |
 | 17 | Docker / CI | in progress (local infra compose done; app containers + CI pending) |
 | 18 | Documentation | in progress |
@@ -575,6 +575,29 @@ the happy path, an unavailable scanner, a failed scanner, a policy
 violation, AI-skip-reasons for no-provider/no-model, AI success, and —
 critically — AI failure not aborting the scan). Workspace total: 264
 tests across 13 packages/apps, 48/48 Turborepo tasks green.
+
+## Phase 15 completion notes
+
+Built `examples/vulnerable-demo-app` — a small standalone Express fixture
+(not part of the pnpm workspace glob, so it's never built/linted as part
+of this monorepo, only ever ingested/analyzed as a target) with seven
+intentional, documented, CWE-tagged vulnerabilities: a fabricated
+hard-coded secret, broken object-level authorization, open redirect, path
+traversal, `eval()` on user input, a SQL-injection-shaped query builder,
+and a pinned known-vulnerable dependency (`lodash@4.17.15`).
+
+**Verified for real, not just asserted**: added an integration test in
+`packages/code-intelligence` that runs the actual `walkRepositoryFiles` +
+`buildCodeGraphFromDirectory` against this real fixture directory on disk
+(not a synthetic in-memory snippet) and confirms all five routes and the
+`DEMO_PORT` env-var usage are correctly detected — proving Section 33's
+"Sentinel should be able to analyze this fixture" end to end through the
+actual ingestion + AST pipeline, on the first run.
+
+Semgrep/Gitleaks/OSV-Scanner results against this fixture couldn't be
+demonstrated live in this environment (none of the three tools are
+installed here, per Phase 7's notes) — that's a real, disclosed gap, not
+one this fixture papers over.
 
 ## Working agreement for remaining phases
 
