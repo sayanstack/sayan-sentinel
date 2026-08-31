@@ -27,7 +27,7 @@ Status legend: `not started` · `in progress` · `done`
 | 16    | Tests + security regression suite                                                           | done                                                                     |
 | 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
 | 18    | Documentation                                                                               | done                                                                     |
-| 19    | Full audit                                                                                  | not started                                                              |
+| 19    | Full audit                                                                                  | done                                                                     |
 
 ## Phase 2 research notes (to date)
 
@@ -795,6 +795,48 @@ data would be.
 yet (verified manually in-browser instead, both stated above); Scans,
 Findings, Code Graph, Pull Requests, Policies, Integrations, Activity, and
 Settings remain unbuilt; no Dockerfile for `apps/web` yet.
+
+## Phase 19 completion notes — final audit
+
+Performed a genuine audit pass rather than a rubber-stamp: checked for
+loose ends, tested the frontend at a real mobile viewport instead of
+assuming Tailwind's responsive classes were sufficient, and re-ran the
+full verification suite one more time before calling anything done.
+
+**Findings and what happened to each:**
+
+- **No stray TODO/FIXME comments** anywhere in source (`grep`-verified) —
+  nothing presented as complete while secretly unfinished.
+- **No committed secrets**: scanned every tracked file for real-looking
+  AWS/GitHub/OpenAI key shapes and private-key blocks; the only matches
+  are inside test fixtures using deliberately fake/example values (AWS's
+  own documented example key, obviously-placeholder tokens). No `.env`,
+  `.pem`, or `secrets/` path is tracked.
+- **Mobile responsiveness was actually broken** — screenshotted `apps/web`
+  at a real 375px mobile viewport (not assumed from the Tailwind classes
+  alone) and found the fixed `w-64` sidebar consumed most of the screen,
+  pushing page content almost entirely off-canvas. Fixed with a proper
+  off-canvas drawer (`AppShell` + a mobile topbar with a hamburger
+  toggle), verified working in both directions (open via the menu button,
+  close via the backdrop) by driving the actual DOM state, and confirmed
+  desktop layout was unaffected by the change.
+- **Added missing accessibility basics** while in there: `focus-visible`
+  ring states on nav links (keyboard users had no visible focus
+  indicator before), `aria-current="page"` on the active nav link,
+  `aria-label`s on the menu open/close controls, and a
+  `prefers-reduced-motion` media query disabling transitions for users
+  who need it — none of these existed before this audit pass.
+- **Re-ran the complete verification suite** after every fix in this
+  phase, not just at the end: `pnpm format` / `format:check`,
+  `pnpm build`, `pnpm lint`, `pnpm typecheck`, `pnpm test` — all green
+  (55/55 Turborepo tasks) on the final run.
+
+**What this audit did not do**: a full WCAG conformance pass, a Lighthouse
+performance audit, or a dependency vulnerability scan of Sentinel's own
+`node_modules` (ironic, since that's exactly what OSV-Scanner would do —
+and it isn't installed in this environment, per Phase 7's notes). These
+are reasonable next steps for whoever picks this project up next, not
+silently-skipped work presented as covered.
 
 ## Working agreement for remaining phases
 
