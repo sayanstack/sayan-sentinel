@@ -21,6 +21,18 @@ export interface ScanJobData {
   repositoryId?: string;
   trigger?: "MANUAL" | "PUSH" | "PULL_REQUEST" | "SCHEDULED";
   /**
+   * Present only when the scan should report a GitHub Check Run —
+   * omitted for a scan with no corresponding GitHub context (e.g. a
+   * manually-triggered scan of an unregistered clone). `installationId`
+   * is GitHub's numeric installation ID, not this app's internal
+   * `Installation.id`.
+   */
+  github?: {
+    installationId: number;
+    owner: string;
+    repo: string;
+  };
+  /**
    * Present only for a Full Stack Scan against a verified, deployed
    * target — omitted entirely for an ordinary code-only scan, which stays
    * on the existing `runScanPipeline` path unchanged. `scopeGuard` comes

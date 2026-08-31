@@ -47,6 +47,38 @@ library's own documentation — but **has not been exercised against a live
 GitHub App**: no GitHub App credentials are configured in this
 environment.
 
+## GitHub Check Runs (scan status reporting)
+
+`GitHubAppClient.createCheckRun` existed from the initial GitHub App
+integration but was never called from anywhere until Phase 31 — a real
+gap, confirmed by grepping the whole codebase for the method name outside
+its own definition and test files. It is now called from
+`apps/worker/src/queue/scan-worker.ts`'s `processScanJob`, which every
+scan job (code-only or Full Stack) runs through:
+
+- `buildCheckRunSummary(headSha, result)`
+  (`apps/worker/src/github/build-check-run-summary.ts`) formats the
+  Security Score, a per-severity finding-count table, a ✅/❌ line derived
+  directly from `policyResult.passed`, an optional web-scan summary line,
+  and the real policy violation messages, into a `CheckRunParams`.
+- The Check Run is only posted when a job carries a `github: {
+installationId, owner, repo }` field on `ScanJobData` **and** the worker
+  process has a configured `GitHubAppClient` (i.e. `GITHUB_APP_ID` /
+  `GITHUB_APP_PRIVATE_KEY_PATH` / `GITHUB_WEBHOOK_SECRET` are all set —
+  the same three variables `deriveFeatureFlags` checks for
+  `githubAppEnabled`). Either one missing means the scan still runs and
+  returns its result — reporting is skipped, never guessed at.
+- A `createCheckRun` failure (expired installation, GitHub rate limit,
+  network error) is caught and swallowed inside `processScanJob` — a
+  failed status post must never fail an otherwise-successful scan.
+
+**Not built yet**: nothing in `apps/api` currently receives a GitHub
+webhook and enqueues a scan job with `github` populated — there is no
+webhook route and no queue-producer code under `apps/api/src` at all.
+This phase makes the worker capable of reporting a Check Run once a job
+carries that field; wiring an actual `push`/`pull_request` webhook
+receiver through to the queue is separate, still-`not started` work.
+
 ## Setting up a real GitHub App (what you need to supply)
 
 1. Create a GitHub App at

@@ -39,6 +39,59 @@ Status legend: `not started` · `in progress` · `done`
 | 28    | Web Targets dashboard UI (real, browser-verified)                                           | done — see notes below                                                   |
 | 29    | Scan result persistence (fixed a real pre-existing gap)                                     | done — see notes below                                                   |
 | 30    | Hosted-mode config interlocks (SENTINEL_HOSTED_MODE)                                        | done — see notes below                                                   |
+| 31    | GitHub Check Run reporting wired into the scan worker                                       | done — see notes below                                                   |
+
+## Phase 31 — GitHub Check Run reporting
+
+Full writeup in [docs/github-app.md](github-app.md#github-check-runs-scan-status-reporting).
+`GitHubAppClient.createCheckRun` has existed since Phase 12 but a grep
+across the whole codebase (`grep -rln "createCheckRun" apps/ packages/
+--include="*.ts" | grep -v test | grep -v dist`) turned up only its own
+definition — it had never been called from anywhere. A real, previously
+unnoticed gap, not on the original list, fixed for the same reason as
+the Phase 29 persistence gap: shipping new orchestration on top of a
+method nobody calls would mean the "PR workflow" story stays silently
+broken underneath.
+
+**Built**: `apps/worker/src/github/build-check-run-summary.ts` —
+`buildCheckRunSummary(headSha, result: FullStackScanResult)` — formats a
+completed scan into a `CheckRunParams` (Security Score, a per-severity
+markdown table computed from the actual `correlatedFindings`, ✅/❌ derived
+directly from `policyResult.passed` — never from an invented score
+threshold — an optional web-scan summary line when `result.web` is
+present, and the real policy violation messages on failure). `ScanJobData`
+(`apps/worker/src/queue/queue-names.ts`) gained an optional `github?:
+{installationId, owner, repo}` field, following the same "present → do
+the thing, absent → skip, never guess" pattern already used for
+`repositoryId` and `webTarget`. The per-job work in
+`apps/worker/src/queue/scan-worker.ts` was factored out into an exported
+`processScanJob()` so it's unit-testable without a live Redis connection
+(the `Worker` construction itself remains untested, matching the
+pre-existing state — `startScanWorker` requires a reachable Redis this
+environment doesn't have). A `GitHubAppClient` is built once at
+worker-startup from the same three env vars `deriveFeatureFlags` already
+uses to compute `githubAppEnabled` (`GITHUB_APP_ID`,
+`GITHUB_APP_PRIVATE_KEY_PATH`, `GITHUB_WEBHOOK_SECRET`) — `null` when any
+are missing. A Check Run failure (rate limit, revoked installation) is
+caught and swallowed: reporting status is a side effect of a completed
+scan, never a precondition for one. 5 new tests in
+`scan-worker.test.ts` cover: no client → no call, client + no
+`job.data.github` → no call, both present → correct
+`(installationId, owner, repo, summary)` call, API rejection doesn't
+propagate, and persistence still runs independent of GitHub reporting.
+
+**Explicitly deferred / not built in this phase**: nothing yet opens or
+comments on pull requests from this new wiring — that remains the
+existing Phase 13b remediation-PR workflow (`apply-approved-patch`,
+`generate-patch`), which is a separate, human-approval-gated path,
+distinct from the Check Run this phase reports automatically on every
+scan. Nothing in `apps/api` receives GitHub webhooks or enqueues a scan job at
+all yet (confirmed: no `webhook` route, no `ScanJobData`/queue reference
+anywhere under `apps/api/src`) — so no job in this codebase currently
+gets `github` populated end-to-end from a real `push`/`pull_request`
+event. That receiver-and-enqueue path is still `not started`; this phase
+only makes the worker capable of reporting a Check Run once a job
+carries that field, not the population of the field itself.
 
 ## Phase 30 — Hosted-mode config interlocks
 

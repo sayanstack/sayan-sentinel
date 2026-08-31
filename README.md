@@ -153,6 +153,16 @@ run-full-stack-scan-pipeline.ts`) — the existing code scan pipeline,
   code scan and a Full Stack Scan are the same code path now. Honestly
   documents what it doesn't do yet (no cross-layer finding correlation,
   no dashboard surface). See [docs/full-stack-scan.md](docs/full-stack-scan.md).
+- ✅ GitHub Check Run reporting (`apps/worker/src/github/`) — fixed
+  another real pre-existing gap: `GitHubAppClient.createCheckRun` existed
+  since the original GitHub App integration but was never called from
+  anywhere (confirmed by grepping the whole codebase). Every scan job now
+  posts a real Check Run — Security Score, a per-severity finding table,
+  and a ✅/❌ conclusion taken directly from the repository's own
+  configured policy result, never an invented threshold — whenever the
+  job carries GitHub context and the App is actually configured. A
+  reporting failure never fails the scan itself. See
+  [docs/github-app.md](docs/github-app.md#github-check-runs-scan-status-reporting).
 - ✅ `packages/api-security-engine` — OpenAPI (JSON/YAML) import, an
   endpoint inventory cross-referencing declared vs. observed endpoints
   (reusing `source-runtime-correlation`'s matcher, not a second
