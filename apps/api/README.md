@@ -15,10 +15,14 @@ NestJS API — auth, repository/scan/finding endpoints, webhook ingress, GitHub 
 - `GET /health/ready` — readiness probe (via `@nestjs/terminus`) that actually queries
   Postgres (`SELECT 1` through Prisma) and pings Redis, and reports each as up/down
   truthfully rather than assuming success.
+- `GET /repositories/:id` — tenant-scoped repository lookup demonstrating
+  `@sayan-sentinel/auth`'s cross-tenant access check end to end. Uses a
+  `x-demo-user-id` header as a placeholder identity — real session auth
+  isn't built yet. A cross-tenant request gets 404, not 403.
 
 ## Not yet implemented
 
-Everything else: authentication, repository/scan/finding endpoints, GitHub webhook
+Real session-based authentication, scan/finding endpoints, GitHub webhook
 ingress, SSE/WebSocket updates.
 
 ## Running

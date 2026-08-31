@@ -94,9 +94,16 @@ This repository is being built in public, phase by phase, tracked in
   hard-coded secret, and a pinned known-vulnerable dependency), verified
   by an integration test that runs the real ingestion + AST pipeline
   against it on disk.
+- ✅ Docker (`apps/api`/`apps/worker` Dockerfiles + `docker-compose.yml`,
+  unbuilt here — no Docker engine installed), CI (`.github/workflows/ci.yml`),
+  and the full [documentation set](#documentation).
+- ✅ `packages/auth` — cross-tenant access control
+  (`canAccessOrganization`), demonstrated end to end via `apps/api`'s
+  `GET /repositories/:id`, which returns 404 (not 403) for a cross-tenant
+  request rather than confirming the resource exists.
 - 🚧 Everything else — remediation/PR workflow, findings persistence,
-  frontend — is under active development. Nothing not listed above should
-  be assumed to work yet.
+  session-based auth, frontend — is under active development. Nothing not
+  listed above should be assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

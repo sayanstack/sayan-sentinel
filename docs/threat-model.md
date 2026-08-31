@@ -90,10 +90,19 @@ authorizations) is readable or writable by another.
 explicit `organizationId` on every tenant-owned row — even where it could
 be derived transitively through a join — so an authorization check can be
 enforced directly against the row being read/written.
+`packages/auth`'s `canAccessOrganization()`/`assertOrganizationAccess()`
+is the single choke point every tenant-scoped lookup must pass through,
+framework-agnostic so it's identically reusable from a controller, a
+guard, or a worker job. `apps/api`'s `GET /repositories/:id` demonstrates
+it end to end: a cross-tenant request returns 404, not 403 — confirming a
+resource _exists_ to an unauthorized caller is itself a leak — verified
+by a regression test where a user who exists but has no membership in the
+resource's organization never receives the row.
 
-**Known gap**: no API endpoints exist yet that actually query
-organization-scoped data, so there is nothing to IDOR-test yet. This is
-tracked, not hidden — see [implementation-plan.md](implementation-plan.md).
+**Remaining gap**: only this one endpoint exercises the check today; the
+rest of the planned tenant-scoped API surface (scans, findings, target
+authorizations) doesn't exist yet, so those aren't IDOR-tested — tracked,
+not hidden, in [implementation-plan.md](implementation-plan.md).
 
 ## 6. AI cost/availability
 

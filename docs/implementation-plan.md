@@ -24,7 +24,7 @@ Status legend: `not started` · `in progress` · `done`
 | 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | not started                                                              |
 | 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | not started                                                              |
 | 15    | Vulnerable demo fixture                                                                     | done                                                                     |
-| 16    | Tests + security regression suite                                                           | not started                                                              |
+| 16    | Tests + security regression suite                                                           | done                                                                     |
 | 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
 | 18    | Documentation                                                                               | done                                                                     |
 | 19    | Full audit                                                                                  | not started                                                              |
@@ -639,6 +639,45 @@ integrations haven't been exercised live (AI, GitHub App, HexStrike,
 Docker) rather than letting that ambiguity sit implicit. README.md updated
 with a documentation index and its stale "once written" caveats removed
 now that those files exist.
+
+## Phase 16 completion notes
+
+Section 35 calls for regression coverage across SSRF, cross-tenant IDOR,
+path traversal, webhook forgery, prompt injection, and secret leakage.
+Five of six already existed scattered across packages by this point in
+the build; the sixth (cross-tenant IDOR) had **no coverage at all**,
+because no tenant-scoped endpoint existed yet to attack. Rather than just
+document that gap, closed it:
+
+- **New `packages/auth`**: `canAccessOrganization()` /
+  `assertOrganizationAccess()` — the single, framework-agnostic choke
+  point every tenant-scoped resource lookup should pass through, tested
+  directly (8 tests, including the IDOR case: a user who exists, but has
+  no membership in the resource's organization, is denied).
+- **New `apps/api` endpoint**, `GET /repositories/:id`, wires this into a
+  real (if minimal — no session auth exists yet, so it reads a
+  `x-demo-user-id` header, explicitly documented as a placeholder) code
+  path: `RepositoriesService.getRepositoryForUser()` loads the resource,
+  then checks membership, and returns `null` — mapped to a 404, not a
+  403 — for a cross-tenant request, so an unauthorized caller can't even
+  learn the resource exists. 4 regression tests, including the core case:
+  a real row exists in the (mocked) database, but a user without
+  membership in its organization never receives it.
+- SSRF: `packages/hexstrike-adapter`'s Scope Guard suite (35 tests).
+- Path traversal: `packages/code-intelligence`'s `path-safety`/
+  `file-walker` suites.
+- Webhook forgery: `packages/github`'s `verify-signature` suite.
+- Prompt injection: `packages/ai-engine`'s `injection-detector` suite.
+- Secret leakage: `packages/shared`'s `redact` suite,
+  `packages/security-engine`'s Gitleaks normalizer tests, and
+  `packages/ai-engine`'s `redact-secrets-in-text` suite.
+
+**Remaining gap, disclosed not hidden**: only the one repositories
+endpoint exercises tenant-access checking today; scans/findings/target-
+authorization endpoints don't exist yet, so they aren't IDOR-tested.
+
+Workspace total: 277 tests across 15 packages/apps, 52/52 Turborepo
+tasks green.
 
 ## Working agreement for remaining phases
 

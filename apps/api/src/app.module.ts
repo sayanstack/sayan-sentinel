@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
 import { SentinelConfigModule } from "./config/sentinel-config.module";
 import { HealthModule } from "./health/health.module";
+import { RepositoriesModule } from "./repositories/repositories.module";
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { HealthModule } from "./health/health.module";
       },
     }),
     HealthModule,
+    RepositoriesModule,
   ],
 })
 export class AppModule {}
