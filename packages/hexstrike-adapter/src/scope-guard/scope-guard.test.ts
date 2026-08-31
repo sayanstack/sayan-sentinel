@@ -213,6 +213,30 @@ describe("evaluateScopeGuard", () => {
     expect(decision.reason).toBe("no_matching_authorization");
   });
 
+  it("blocks an IPv6 loopback literal in a URL, even bracket-wrapped as the WHATWG URL parser keeps it", async () => {
+    const decision = await evaluateScopeGuard({
+      url: "http://[::1]/admin",
+      tier: 0,
+      authorizations: [authorization({ scheme: "http", host: "::1", port: 80 })],
+      localLabMode: false,
+      now: NOW,
+    });
+    expect(decision.allowed).toBe(false);
+    expect(decision.reason).toBe("blocked_hostname");
+  });
+
+  it("blocks an IPv4-mapped IPv6 loopback literal, normalized by the URL parser to hex-hextet form", async () => {
+    const decision = await evaluateScopeGuard({
+      url: "http://[::ffff:127.0.0.1]/",
+      tier: 0,
+      authorizations: [authorization({ scheme: "http", host: "::ffff:7f00:1", port: 80 })],
+      localLabMode: false,
+      now: NOW,
+    });
+    expect(decision.allowed).toBe(false);
+    expect(decision.reason).toBe("host_resolves_to_blocked_address");
+  });
+
   it("checks are case-insensitive on hostname", async () => {
     const decision = await evaluateScopeGuard({
       url: "https://TARGET.EXAMPLE.COM/",

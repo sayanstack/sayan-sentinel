@@ -12,6 +12,10 @@ export interface EvaluateScopeGuardOptions {
   resolver?: DnsResolver;
 }
 
+function stripIPv6Brackets(hostname: string): string {
+  return hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
+}
+
 /**
  * The deterministic security boundary for every dynamic validation
  * request (Sections 19-20). This function is the ONLY thing that decides
@@ -41,7 +45,13 @@ export async function evaluateScopeGuard(
     return { allowed: false, reason: "unsupported_scheme", detail: parsed.protocol };
   }
   const scheme: Scheme = parsed.protocol === "https:" ? "https" : "http";
-  const hostname = parsed.hostname.toLowerCase();
+  // WHATWG URL.hostname keeps an IPv6 literal bracket-wrapped (`"[::1]"`, not
+  // `"::1"`) — every hostname comparison and IP check below needs the bare
+  // address, or an IPv6 literal silently skips the fast-path localhost check
+  // (`"[::1]" !== "::1"`) and `net.isIP()` in resolveAndCheckHost fails to
+  // recognize it as a literal, falling through to an unnecessary — and on
+  // some resolvers, unpredictable — DNS lookup of the bracketed string.
+  const hostname = stripIPv6Brackets(parsed.hostname.toLowerCase());
   const port = parsed.port ? Number(parsed.port) : scheme === "https" ? 443 : 80;
 
   if (

@@ -53,6 +53,14 @@ describe("isBlockedIPv6", () => {
     expect(isBlockedIPv6("::ffff:10.0.0.5")).toBe(true);
   });
 
+  it("blocks an IPv4-mapped address given in hex-hextet form, not just dotted-decimal", () => {
+    // `::ffff:7f00:1` is the same address as `::ffff:127.0.0.1` — the form
+    // `net.isIP`/a URL literal's normalized hostname actually produces.
+    expect(isBlockedIPv6("::ffff:7f00:1")).toBe(true);
+    // `::ffff:a00:5` == `::ffff:10.0.0.5`
+    expect(isBlockedIPv6("::ffff:a00:5")).toBe(true);
+  });
+
   it("allows an ordinary public IPv6 address", () => {
     expect(isBlockedIPv6("2001:4860:4860::8888")).toBe(false);
   });

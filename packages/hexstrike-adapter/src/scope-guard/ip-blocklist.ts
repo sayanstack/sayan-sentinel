@@ -49,6 +49,30 @@ export function isBlockedIPv4(ip: string): boolean {
 }
 
 /**
+ * Extracts the embedded IPv4 address from an IPv4-mapped IPv6 address,
+ * recognizing both the dotted-decimal form (`::ffff:127.0.0.1`) and the
+ * hex-hextet form (`::ffff:7f00:1`) — Node's own `net.isIP`/`dns.lookup`
+ * can produce either depending on how the original address was written
+ * (e.g. a URL literal `[::ffff:127.0.0.1]` normalizes its *hostname* to the
+ * hex-hextet form, while a DNS/getaddrinfo result may come back dotted) —
+ * so both must resolve to the same blocklist decision.
+ */
+function extractIPv4MappedAddress(ip: string): string | undefined {
+  const dottedMatch = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(ip);
+  if (dottedMatch?.[1]) return dottedMatch[1];
+
+  const hexMatch = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(ip);
+  if (hexMatch?.[1] && hexMatch[2]) {
+    const high = parseInt(hexMatch[1], 16);
+    const low = parseInt(hexMatch[2], 16);
+    if (Number.isNaN(high) || Number.isNaN(low)) return undefined;
+    return [(high >> 8) & 0xff, high & 0xff, (low >> 8) & 0xff, low & 0xff].join(".");
+  }
+
+  return undefined;
+}
+
+/**
  * IPv6 coverage is intentionally narrower than IPv4: exact loopback
  * (::1), link-local (fe80::/10), unique local (fc00::/7), and IPv4-mapped
  * addresses (re-checked against the IPv4 list). Full general-purpose IPv6
@@ -60,9 +84,9 @@ export function isBlockedIPv6(ip: string): boolean {
 
   if (normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
 
-  const mappedMatch = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(normalized);
-  if (mappedMatch?.[1]) {
-    return isBlockedIPv4(mappedMatch[1]);
+  const mappedIPv4 = extractIPv4MappedAddress(normalized);
+  if (mappedIPv4) {
+    return isBlockedIPv4(mappedIPv4);
   }
 
   const firstSegment = normalized.split(":")[0] ?? "";
