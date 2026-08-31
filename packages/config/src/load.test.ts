@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfigValidationError, loadConfig } from "./load.js";
+import { ConfigValidationError, loadConfig } from "./load";
 
 const baseEnv = {
   DATABASE_URL: "postgresql://sentinel:sentinel@localhost:5432/sentinel",

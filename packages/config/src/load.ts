@@ -1,4 +1,4 @@
-import { envSchema, type Env } from "./schema.js";
+import { envSchema, type Env } from "./schema";
 
 export interface FeatureFlags {
   aiEnabled: boolean;

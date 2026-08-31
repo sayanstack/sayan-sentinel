@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isFindingStatus, isSeverity } from "./security.js";
+import { isFindingStatus, isSeverity } from "./security";
 
 describe("isSeverity", () => {
   it("accepts known severities", () => {

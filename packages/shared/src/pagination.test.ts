@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampLimit, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from "./pagination.js";
+import { clampLimit, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from "./pagination";
 
 describe("clampLimit", () => {
   it("returns the default when undefined", () => {
