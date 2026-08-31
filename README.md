@@ -117,6 +117,15 @@ This repository is being built in public, phase by phase, tracked in
   exposure, missing HSTS). This is a tested foundation, not a full web
   scanner — no crawler/discovery engine or API Security Engine exists
   yet. See [docs/web-security-engine.md](docs/web-security-engine.md).
+- ✅ `packages/source-runtime-correlation` — the Source-to-Runtime
+  platform's flagship correlation piece: deterministic route
+  normalization (Express/NestJS `:param`, Next.js `[param]`/`[...slug]`)
+  and a specificity-ranked path matcher that maps a runtime request
+  (`GET /users/123`) to its source route (`/users/{id}`), with genuine
+  ambiguity detection rather than silent first-match resolution. Proven
+  end-to-end against real routes extracted by the Rules Engine's AST
+  parser, not just tested in isolation. See
+  [docs/source-runtime-correlation.md](docs/source-runtime-correlation.md).
 - ✅ Remediation workflow — `generatePatchSuggestion()` (AI-generated fix
   proposals, untrusted-content-safe) and `applyApprovedPatchAsPullRequest()`,
   which refuses to touch GitHub at all without an explicit human approval
@@ -245,6 +254,7 @@ packages/
   hexstrike-adapter/   dynamic validation provider (Scope Guard-gated) + target verification
   rules-engine/        Sentinel Rules Engine — AST/call-graph/taint-based SAST, no AI required
   web-security-engine/ SafeHttpClient + passive web security rules (CORS, cookies, headers)
+  source-runtime-correlation/ route normalization + source<->runtime path matching
   shared/              cross-cutting types/utilities
   config/              typed environment/config loading
 examples/

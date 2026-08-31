@@ -19,3 +19,14 @@ export { defaultRules } from "./rules";
 export { ruleFindingToDraft } from "./findings/mapper";
 export { toSarif } from "./findings/sarif";
 export { RulesEngineScannerAdapter } from "./adapter/RulesEngineScannerAdapter";
+export {
+  extractRouteHandlers,
+  nextAppRouterPathFromFile,
+  type RouteHandler,
+} from "./analysis/routes";
+export {
+  loadProjectFromDirectory,
+  loadProjectFromSources,
+  toRelativePath,
+  type LoadedProject,
+} from "./analysis/project";

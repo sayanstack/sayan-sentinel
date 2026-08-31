@@ -31,6 +31,32 @@ Status legend: `not started` · `in progress` · `done`
 | 20    | Sentinel Rules Engine (AST/call-graph/taint-based SAST, no AI required)                     | done — see notes below                                                   |
 | 21    | Scope Guard V2 hardening + Target Authorization verification primitives                     | done — see notes below                                                   |
 | 22    | Web Security Engine: SafeHttpClient + 5 passive rules                                       | done — see notes below                                                   |
+| 23    | Source-to-Runtime Correlation: route normalization + path matching                          | done — see notes below                                                   |
+
+## Phase 23 — Source-to-Runtime Correlation
+
+New `packages/source-runtime-correlation`, the piece Spec B names as its
+own flagship feature. Full writeup in
+[docs/source-runtime-correlation.md](source-runtime-correlation.md).
+
+**Built**: a dependency-free `NormalizedRoute`/matching core —
+`normalizeColonParams` (Express/NestJS), `normalizeNextAppRouterPath`
+(Next.js App Router, including catch-all segments and route-group
+stripping), and `correlateRuntimeRequest`, which matches a concrete
+runtime request against a set of source routes with specificity-based
+ranking (a literal route like `/users/me` correctly outranks
+`/users/{id}` for that path) and explicit ambiguity detection when two
+routes tie. Proven with a real cross-package integration test: routes
+extracted by `@sayan-sentinel/rules-engine`'s actual `ts-morph` parser
+(Express, NestJS, Next.js fixtures) are converted to `NormalizedRoute[]`
+and correlated against synthetic runtime paths — not just tested against
+hand-written pattern strings. 37 tests total.
+
+**Explicitly deferred**: no `RepositoryDeployment` entity/persistence, no
+runtime-endpoint discovery of its own (needs a Web Discovery Engine or
+OpenAPI import this session didn't build), and no Full Stack Scan/
+Application Graph/dashboard wiring. This is the matching engine, proven
+against real source-side data — not an end-to-end feature yet.
 
 ## Phase 22 — Web Security Engine (SafeHttpClient + passive rules)
 
