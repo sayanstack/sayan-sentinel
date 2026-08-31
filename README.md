@@ -33,9 +33,16 @@ This repository is being built in public, phase by phase, tracked in
 
 - ✅ Monorepo scaffold (pnpm + Turborepo), root tooling, local infra
   (`docker compose up` for Postgres/Redis/MinIO)
-- 🚧 Everything else — API, worker, code intelligence, scanners, AI engine,
-  Scope Guard, HexStrike adapter, GitHub App, frontend — is under active
-  development. Nothing below "Roadmap" should be assumed to work yet.
+- ✅ `packages/shared`, `packages/config`, `packages/database` — vocabulary
+  types, validated env/feature-flag loading, and the full tenant-isolated
+  Prisma schema
+- ✅ `apps/api` skeleton — structured logging with request IDs and secret
+  redaction, plus `/health/live` and `/health/ready` (the latter genuinely
+  checks Postgres and Redis and reports `down` truthfully when they're
+  unreachable, verified end-to-end with no infra running)
+- 🚧 Everything else — worker, code intelligence, scanners, AI engine, Scope
+  Guard, HexStrike adapter, GitHub App, frontend — is under active
+  development. Nothing not listed above should be assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

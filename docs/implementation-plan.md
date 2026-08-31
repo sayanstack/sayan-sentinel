@@ -12,7 +12,7 @@ Status legend: `not started` · `in progress` · `done`
 | 2 | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done |
 | 3 | This plan | done |
 | 4 | Monorepo scaffold, root tooling, contracts | done |
-| 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | not started |
+| 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | done |
 | 6 | Repository ingestion + code intelligence (AST graph) | not started |
 | 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | not started |
 | 8 | Findings model + correlation engine | not started |
@@ -87,6 +87,57 @@ Built, and verified with real command output (not assumed):
 - One real bug was caught by its own test and fixed during this phase:
   `clampLimit(0)` returned the default limit instead of clamping to 1,
   because `!limit` treats `0` as falsy.
+
+## Module-system correction (post-Phase 4)
+
+Switched `packages/shared`, `packages/config`, and `packages/database` from
+ESM (`NodeNext`) to CommonJS across the whole workspace (`tsconfig.base.json`,
+per-package `package.json`). NestJS's dependency injection depends on
+`emitDecoratorMetadata`, and its Jest-based testing story, are both far more
+reliable under CommonJS than ESM interop with a CJS-only ecosystem
+(Jest/ts-jest, most Nest ecosystem packages). Re-verified after the switch:
+build/test/typecheck green, and the compiled output loads correctly via
+`require()`.
+
+## Phase 5 completion notes
+
+Built `apps/api` (NestJS) and verified with real command output:
+
+- `SentinelConfigModule` — loads `@sayan-sentinel/config` once at boot,
+  exposed via the `SENTINEL_CONFIG` DI token.
+- Structured logging via `nestjs-pino`: per-request IDs (read from/echoed to
+  `x-request-id`), and redaction of `authorization`, `cookie`, `set-cookie`,
+  and common secret-shaped fields (`*.password`, `*.token`, `*.apiKey`,
+  `*.privateKey`, etc.) before anything is logged — the Section 31/11 "never
+  log secrets" requirement enforced at the transport layer, not by
+  convention.
+- `GET /health/live` — liveness, no dependency access.
+- `GET /health/ready` — readiness via `@nestjs/terminus`'s current
+  `HealthIndicatorService`/`HealthCheckService` API (inspected the installed
+  package's actual `.d.ts` files before writing against it, rather than
+  assuming the older `HealthIndicator` base-class API from older Terminus
+  versions). Checks Postgres via a real `SELECT 1` through Prisma and pings
+  Redis via a short-lived `ioredis` connection.
+- Pinned `@nestjs/*` to the 11.2.x line, not the newly-released 12.0.1 —
+  `@nestjs/terminus` and `nestjs-pino` both declare peer support only up to
+  Nest 11; installing against 12 produced unmet-peer-dependency warnings.
+- **Verified end-to-end, not just unit-tested**: with no Postgres or Redis
+  running (this machine has neither Docker nor a local Postgres/Redis), the
+  e2e suite boots the real Nest application and asserts `/health/ready`
+  returns **503** with `database` and `redis` both explicitly `"down"`,
+  carrying the real underlying errors (Prisma's actual
+  `Can't reach database server at localhost:5432` and ioredis's actual
+  `Connection is closed.`) — not a fabricated success and not a silent
+  crash. `/health/live` still returns 200 in the same run, since it touches
+  no dependency.
+- 8 unit tests (health controller + both indicators, each asserting the
+  down-path reports the real error) plus the e2e suite above, all passing.
+  `pnpm lint` (0 errors/warnings), `pnpm typecheck`, and `pnpm build` are
+  green across all 4 packages.
+- Disabled `@typescript-eslint/consistent-type-imports` repo-wide: its
+  autofix would rewrite a constructor-injected class to `import type`,
+  which strips the runtime value `emitDecoratorMetadata` needs — that
+  autofix would silently break NestJS dependency injection.
 
 ## Working agreement for remaining phases
 
