@@ -9,9 +9,9 @@ Status legend: `not started` · `in progress` · `done`
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Repository inspection | done |
-| 2 | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | in progress |
+| 2 | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done |
 | 3 | This plan | done |
-| 4 | Monorepo scaffold, root tooling, contracts | in progress |
+| 4 | Monorepo scaffold, root tooling, contracts | done |
 | 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | not started |
 | 6 | Repository ingestion + code intelligence (AST graph) | not started |
 | 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | not started |
@@ -48,10 +48,45 @@ Status legend: `not started` · `in progress` · `done`
   API — Phase 11 starts with an inventory of the real tool schemas before
   writing the `DynamicValidationProvider` implementation.
 - **Node/pnpm/turbo/git** confirmed installed locally (Node 24.19.0, pnpm
-  10.12.4, git 2.54.0). Docker was not found on this machine's PATH —
-  flagged as an external setup item; `docker compose` commands in the docs
+  10.12.4, git 2.54.0). **Docker is not installed on this machine** (no
+  `docker` binary, no `com.docker.service`) — confirmed via both the Bash and
+  PowerShell shells. Flagged as an external setup item; `docker compose up`
   will not run here until Docker Desktop (or an equivalent engine) is
-  installed. This does not block building the application code itself.
+  installed. This does not block building or unit-testing the application
+  code itself, but it does mean Postgres-backed integration tests and
+  `prisma migrate dev` cannot be exercised against a live database in this
+  environment until Docker (or a local Postgres install) is available.
+
+## Phase 4 completion notes
+
+Built, and verified with real command output (not assumed):
+
+- Root tooling: `package.json` (pnpm workspaces + turbo scripts),
+  `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.base.json`, `.gitignore`,
+  `.env.example`, `docker-compose.yml` (Postgres/Redis/MinIO — app
+  containers added once `apps/*` exist).
+- `packages/shared`: branded IDs, severity/status/safety-tier vocabulary,
+  `Result` type, pagination helpers. 9 unit tests, all passing.
+- `packages/config`: zod-validated env schema mirroring `.env.example`,
+  `loadConfig()` deriving `aiEnabled` / `githubAppEnabled` /
+  `hexstrikeEnabled` feature flags so optional integrations fail closed
+  into a "not configured" state rather than a crash or a fake success.
+  6 unit tests, all passing.
+- `packages/database`: full Prisma schema for the Section 32 data model
+  (User, Organization, Membership, Installation, Repository, Scan, ScanJob,
+  Finding, FindingEvidence, TargetAuthorization, DynamicValidation, Policy,
+  Patch, PullRequest, AuditEvent, AIUsage) with explicit `organizationId` on
+  every tenant-owned row for isolation, a unique `(repositoryId,
+  fingerprint)` constraint on `Finding` for stable dedup, and a seed script
+  for local dev identity only (no fake repositories/scans/findings).
+  `prisma generate` succeeds against the schema (verified); no live
+  database is available yet to run migrations (see Docker note above).
+- Verified end-to-end via Turborepo: `pnpm install`, `pnpm build`,
+  `pnpm test` (15/15 passing across the 3 packages), `pnpm typecheck` all
+  green.
+- One real bug was caught by its own test and fixed during this phase:
+  `clampLimit(0)` returned the default limit instead of clamping to 1,
+  because `!limit` treats `0` as falsy.
 
 ## Working agreement for remaining phases
 

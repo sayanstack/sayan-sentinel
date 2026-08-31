@@ -1,0 +1,485 @@
+// Sayan Sentinel data model.
+//
+// Every tenant-owned row carries an explicit organizationId, even where it
+// could be derived transitively through a relation, so authorization checks
+// and Prisma query filters can enforce tenant isolation directly against the
+// row being read/written instead of trusting a join chain.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & tenancy
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  avatarUrl     String?
+  githubUserId  String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships   Membership[]
+  auditEvents   AuditEvent[]        @relation("AuditEventActor")
+  authorizations TargetAuthorization[] @relation("AuthorizedBy")
+
+  @@index([email])
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships           Membership[]
+  installations         Installation[]
+  repositories          Repository[]
+  policies              Policy[]
+  targetAuthorizations  TargetAuthorization[]
+  auditEvents           AuditEvent[]
+  aiUsage               AIUsage[]
+
+  @@index([slug])
+}
+
+model Membership {
+  id             String         @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MembershipRole @default(MEMBER)
+  createdAt      DateTime       @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// GitHub integration
+// ---------------------------------------------------------------------------
+
+model Installation {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  githubInstallationId String  @unique
+  accountLogin        String
+  accountType         String
+  suspendedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repositories Repository[]
+
+  @@index([organizationId])
+}
+
+model Repository {
+  id                String   @id @default(cuid())
+  organizationId    String
+  installationId    String
+  githubRepoId      String   @unique
+  owner             String
+  name              String
+  defaultBranch     String
+  private           Boolean  @default(true)
+  lastIngestedSha   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  installation  Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  scans         Scan[]
+  findings      Finding[]
+  policies      Policy[]
+  pullRequests  PullRequest[]
+  targetAuthorizations TargetAuthorization[]
+
+  @@unique([owner, name])
+  @@index([organizationId])
+  @@index([installationId])
+}
+
+// ---------------------------------------------------------------------------
+// Scans & jobs
+// ---------------------------------------------------------------------------
+
+enum ScanTrigger {
+  MANUAL
+  PUSH
+  PULL_REQUEST
+  SCHEDULED
+}
+
+enum ScanStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Scan {
+  id              String     @id @default(cuid())
+  repositoryId    String
+  commitSha       String
+  trigger         ScanTrigger
+  status          ScanStatus @default(QUEUED)
+  pullRequestNumber Int?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  durationMs      Int?
+  securityScore   Int?
+  createdAt       DateTime   @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  jobs       ScanJob[]
+  findings   Finding[]      @relation("FindingLastSeenInScan")
+  aiUsage    AIUsage[]
+
+  @@index([repositoryId])
+  @@index([repositoryId, createdAt])
+}
+
+enum ScanJobType {
+  INGESTION
+  AST_INDEXING
+  STATIC_ANALYSIS
+  SECRET_DETECTION
+  DEPENDENCY_ANALYSIS
+  AI_ANALYSIS
+  CORRELATION
+  DYNAMIC_VALIDATION
+  PATCH_VALIDATION
+}
+
+enum ScanJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ScanJob {
+  id           String        @id @default(cuid())
+  scanId       String
+  type         ScanJobType
+  status       ScanJobStatus @default(QUEUED)
+  attempts     Int           @default(0)
+  error        String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime      @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Findings
+// ---------------------------------------------------------------------------
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum ConfidenceLevel {
+  CONFIRMED
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FindingStatus {
+  OPEN
+  CONFIRMED
+  LIKELY
+  NEEDS_REVIEW
+  FALSE_POSITIVE
+  RESOLVED
+  ACCEPTED_RISK
+}
+
+enum FindingSource {
+  STATIC_ANALYSIS
+  SECRET_DETECTION
+  DEPENDENCY_ANALYSIS
+  CODE_INTELLIGENCE
+  AI_REVIEW
+  DYNAMIC_VALIDATION
+}
+
+model Finding {
+  id             String          @id @default(cuid())
+  repositoryId   String
+  fingerprint    String
+  category       String
+  cwe            String?
+  owaspCategory  String?
+  title          String
+  description    String
+  severity       Severity
+  confidence     ConfidenceLevel
+  status         FindingStatus   @default(OPEN)
+  primarySource  FindingSource
+  filePath       String?
+  lineStart      Int?
+  lineEnd        Int?
+  symbol         String?
+  remediation    String?
+  firstSeenScanId String?
+  lastSeenScanId  String?
+  resolutionCommitSha String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  repository   Repository       @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  lastSeenScan Scan?            @relation("FindingLastSeenInScan", fields: [lastSeenScanId], references: [id])
+  evidence     FindingEvidence[]
+  patches      Patch[]
+  dynamicValidations DynamicValidation[]
+
+  @@unique([repositoryId, fingerprint])
+  @@index([repositoryId, status])
+  @@index([repositoryId, severity])
+}
+
+enum EvidenceSource {
+  STATIC_ANALYSIS
+  SECRET_DETECTION
+  DEPENDENCY_ANALYSIS
+  CODE_INTELLIGENCE
+  AI_REVIEW
+  DYNAMIC_VALIDATION
+}
+
+// Correlation evidence: one row per detector that contributed to a Finding,
+// so the UI can render "Detected by: Static Analysis, AI Review, ..." and so
+// the correlation engine has an audit trail of what it merged.
+model FindingEvidence {
+  id         String         @id @default(cuid())
+  findingId  String
+  source     EvidenceSource
+  scanner    String?
+  detail     Json
+  createdAt  DateTime       @default(now())
+
+  finding Finding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@index([findingId])
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic validation / Scope Guard
+// ---------------------------------------------------------------------------
+
+enum VerificationMethod {
+  DNS_TXT
+  HTTP_WELL_KNOWN
+  OWNERSHIP_CONFIRMATION
+}
+
+model TargetAuthorization {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  repositoryId       String?
+  scheme             String
+  host               String
+  port               Int
+  allowedPathPrefixes String[]
+  verificationMethod VerificationMethod
+  verifiedAt         DateTime?
+  authorizedByUserId String
+  expiresAt          DateTime
+  rateLimitRps       Float              @default(2)
+  maxTier            Int                @default(1)
+  revokedAt          DateTime?
+  createdAt          DateTime           @default(now())
+
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository      Repository?          @relation(fields: [repositoryId], references: [id], onDelete: SetNull)
+  authorizedBy    User                 @relation("AuthorizedBy", fields: [authorizedByUserId], references: [id])
+  validations     DynamicValidation[]
+
+  @@index([organizationId])
+  @@index([host, port])
+}
+
+enum ValidationStatus {
+  PENDING_APPROVAL
+  QUEUED
+  RUNNING
+  CONFIRMED
+  INCONCLUSIVE
+  FAILED
+  REJECTED_BY_SCOPE_GUARD
+  CANCELLED
+}
+
+model DynamicValidation {
+  id                    String            @id @default(cuid())
+  findingId             String
+  targetAuthorizationId String
+  tier                  Int
+  validationType        String
+  status                ValidationStatus  @default(PENDING_APPROVAL)
+  requestedByUserId     String
+  approvedByUserId      String?
+  provider              String            @default("hexstrike")
+  requestMetadata       Json?
+  responseMetadata      Json?
+  confidence            ConfidenceLevel?
+  durationMs            Int?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime          @default(now())
+
+  finding             Finding             @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  targetAuthorization TargetAuthorization @relation(fields: [targetAuthorizationId], references: [id])
+
+  @@index([findingId])
+  @@index([targetAuthorizationId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Policy
+// ---------------------------------------------------------------------------
+
+model Policy {
+  id             String   @id @default(cuid())
+  organizationId String
+  repositoryId   String
+  name           String
+  rules          Json
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository   Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, name])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Remediation
+// ---------------------------------------------------------------------------
+
+enum PatchStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  APPLIED
+}
+
+model Patch {
+  id            String      @id @default(cuid())
+  findingId     String
+  commitSha     String
+  diff          String
+  status        PatchStatus @default(DRAFT)
+  generatedBy   String
+  approvedByUserId String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  finding      Finding       @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  pullRequest  PullRequest?
+
+  @@index([findingId])
+}
+
+enum PullRequestStatus {
+  OPEN
+  MERGED
+  CLOSED
+}
+
+model PullRequest {
+  id             String            @id @default(cuid())
+  repositoryId   String
+  patchId        String?           @unique
+  githubPrNumber Int
+  branchName     String
+  status         PullRequestStatus @default(OPEN)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  patch      Patch?     @relation(fields: [patchId], references: [id])
+
+  @@unique([repositoryId, githubPrNumber])
+  @@index([repositoryId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit & cost tracking
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorUserId    String?
+  action         String
+  resourceType   String
+  resourceId     String?
+  result         String
+  requestId      String?
+  jobId          String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?        @relation("AuditEventActor", fields: [actorUserId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([action])
+}
+
+model AIUsage {
+  id             String   @id @default(cuid())
+  organizationId String
+  scanId         String?
+  provider       String
+  model          String
+  purpose        String
+  inputTokens    Int
+  outputTokens   Int
+  estimatedCostUsd Float
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scan         Scan?        @relation(fields: [scanId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([scanId])
+}
