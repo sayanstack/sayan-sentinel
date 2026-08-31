@@ -46,10 +46,18 @@ This repository is being built in public, phase by phase, tracked in
   graph (`ts-morph`) detecting imports, functions/classes/methods, Express
   and NestJS routes, env-var reads, outbound HTTP calls, Prisma-style
   queries, and NestJS auth guards
-- 🚧 Everything else — worker orchestration, deterministic scanners, AI
-  engine, Scope Guard, HexStrike adapter, GitHub App, frontend — is under
-  active development. Nothing not listed above should be assumed to work
-  yet.
+- ✅ `packages/findings` — canonical Finding model and stable,
+  snippet-anchored fingerprinting
+- ✅ `packages/security-engine` — Semgrep, Gitleaks, and OSV-Scanner
+  adapters, normalized into the Finding model. None of the three tools are
+  installed on this dev machine, so their "not available" path is what's
+  actually exercised end-to-end here; each adapter reports that honestly
+  rather than faking a clean scan. Gitleaks findings never carry the raw
+  discovered secret — it's masked before the finding is even constructed.
+- 🚧 Everything else — worker orchestration, finding correlation, security
+  score, AI engine, Scope Guard, HexStrike adapter, GitHub App, frontend —
+  is under active development. Nothing not listed above should be assumed
+  to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { redactCredentialsFromUrl, redactSensitiveKeys } from "./redact";
+import { maskSecretValue, redactCredentialsFromUrl, redactSensitiveKeys } from "./redact";
 
 describe("redactCredentialsFromUrl", () => {
   it("strips a GitHub App installation token embedded in a clone URL", () => {
@@ -55,5 +55,29 @@ describe("redactSensitiveKeys", () => {
     expect(redactSensitiveKeys("plain string")).toBe("plain string");
     expect(redactSensitiveKeys(42)).toBe(42);
     expect(redactSensitiveKeys(null)).toBe(null);
+  });
+});
+
+describe("maskSecretValue", () => {
+  it("never includes the full secret in its output", () => {
+    const secret = "AKIAIOSFODNN7EXAMPLE";
+    const masked = maskSecretValue(secret);
+    expect(masked).not.toContain(secret);
+    expect(masked).not.toBe(secret);
+  });
+
+  it("fully redacts short secrets rather than partially revealing them", () => {
+    expect(maskSecretValue("abc123")).toBe("[redacted]");
+  });
+
+  it("keeps a small prefix/suffix for longer secrets to aid identification, masking the middle", () => {
+    const masked = maskSecretValue("AKIAIOSFODNN7EXAMPLE");
+    expect(masked.startsWith("AKI")).toBe(true);
+    expect(masked.endsWith("PLE")).toBe(true);
+    expect(masked).toContain("*");
+  });
+
+  it("is deterministic for the same input", () => {
+    expect(maskSecretValue("some-long-secret-value-here")).toBe(maskSecretValue("some-long-secret-value-here"));
   });
 });

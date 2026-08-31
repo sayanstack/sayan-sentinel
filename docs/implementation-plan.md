@@ -14,8 +14,8 @@ Status legend: `not started` · `in progress` · `done`
 | 4 | Monorepo scaffold, root tooling, contracts | done |
 | 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | done |
 | 6 | Repository ingestion + code intelligence (AST graph) | done |
-| 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | not started |
-| 8 | Findings model + correlation engine | not started |
+| 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | done |
+| 8 | Findings model + correlation engine | in progress (canonical model + fingerprinting done; correlation engine itself not started) |
 | 9 | AI engine (provider abstraction, schema-validated reasoning) | not started |
 | 10 | Scope Guard | not started |
 | 11 | HexStrike AI adapter (real interface) | not started |
@@ -215,6 +215,87 @@ across all 6 packages/apps (20/20 Turborepo tasks).
 failed to exit gracefully" — a leaked handle somewhere in the health
 indicator tests (likely the mocked ioredis client). All tests still pass;
 tracked for cleanup, not blocking.
+
+## Research verification (pre-Phase 7)
+
+Before writing scanner normalizers, fetched the current documented JSON
+output schemas rather than working from memory, since getting a security
+tool's parser subtly wrong is a real correctness bug:
+- Semgrep: `docs.semgrep.dev/semgrep-appsec-platform/json-and-sarif` —
+  confirmed `check_id`/`path`/`start`/`end`/`extra.{message,severity,
+  metadata,lines}` shape, and that `metadata.cwe`/`metadata.owasp` can be
+  string *or* array (handled both).
+- Gitleaks: confirmed field names (`RuleID`, `StartLine`, `Secret`,
+  `Match`, `Fingerprint`, etc.) via the project's own README/docs.
+- OSV-Scanner: confirmed `results[].source`/`packages[].package`/
+  `vulnerabilities[]` structure and that severity commonly lives in
+  `database_specific.severity` rather than requiring CVSS-vector parsing,
+  via `google.github.io/osv-scanner/output`.
+
+None of the three tools are installed on this development machine (no
+network-based package manager access confirmed, no Docker) — this is
+reflected honestly in the adapters and tests below, not papered over.
+
+## Phase 7 completion notes
+
+Built `packages/findings` (canonical model) and `packages/security-engine`
+(the three scanner adapters), with a repo-wide fix along the way.
+
+**`packages/findings`**:
+- `FindingDraft`/`FindingEvidenceDraft` — the pre-persistence shape every
+  scanner normalizer produces, evidence-array-first so the correlation
+  engine (Phase 8, not yet built) has something to merge.
+- `computeFingerprint()` — anchors on the matched snippet text when a
+  scanner provides one (Semgrep's `extra.lines`, gitleaks' own
+  fingerprint), falling back to line number only when no snippet exists
+  (dependency advisories have no line at all). Tested to prove the
+  snippet-anchored case stays stable when an unrelated line-number shift
+  happens elsewhere in the file — a pure line-number fingerprint would
+  spuriously "resolve and recreate" the same finding on every scan once
+  anything above it in the file changes.
+
+**`packages/security-engine`** — one adapter per tool, all implementing a
+common `ScannerAdapter` interface (`checkAvailability()` / `scan()`):
+- Every adapter shells out via `execFile` with argument arrays (no shell).
+- **Never fabricates a result.** `checkAvailability()` and `scan()` both
+  return a genuine `unavailable`/`available:false` outcome — never a fake
+  version string or an empty-but-"completed" scan — when the binary isn't
+  on PATH. Verified with real (not mocked) `ENOENT` behavior against
+  nonexistent binary names, plus a `runScannerProcess` unit test proving
+  the ENOENT/timeout/non-zero-exit paths are each distinguished correctly
+  using the real Node binary as the test subprocess.
+- Semgrep adapter: `semgrep scan --config auto --json`.
+- Gitleaks adapter: `gitleaks detect --no-git --report-format json
+  --exit-code 0` (writing to a temp report file, cleaned up after read) —
+  forcing exit 0 even when secrets are found means a non-zero exit
+  reliably signals a genuine tool error, not "leaks were found".
+- OSV-Scanner adapter: `osv-scanner --format json --recursive`.
+- **Secret redaction enforced in code, not convention**: the Gitleaks
+  normalizer never lets `Secret`/`Match` reach the returned `FindingDraft`
+  — they're passed through `maskSecretValue` (new in
+  `packages/shared/src/redact.ts`) first. Tested by asserting the raw
+  secret string is absent from `JSON.stringify(draft)` entirely, not just
+  "probably redacted."
+- OSV normalizer treats a resolved advisory match as `confidence:
+  "confirmed"` (a database lookup, not a heuristic), while Semgrep/Gitleaks
+  findings get `"high"/"medium"` confidence — a deliberate distinction
+  documented in-code.
+
+**Repo-wide tsconfig change**: disabled `exactOptionalPropertyTypes`. It
+kept rejecting the normal `{ foo: condition ? value : undefined }` pattern
+that naturally shows up when mapping heterogeneous scanner output onto
+optional fields — fighting a common, safe idiom five times over was a
+worse trade than losing that one strictness flag. `strict` and
+`noUncheckedIndexedAccess` are unaffected.
+
+**Test results**: 24 new tests in `security-engine` (all passing), 7 in
+`findings`. Workspace total is now 94 tests across 8 packages/apps, all
+passing; `pnpm build`/`lint`/`typecheck`/`test` green (21/21 Turborepo
+tasks).
+
+**Not yet built** (this is Phase 8): the correlation engine that merges
+evidence from multiple sources into one `Finding` instead of one per
+detector, and the security score formula.
 
 ## Working agreement for remaining phases
 

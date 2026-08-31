@@ -19,6 +19,21 @@ export function redactCredentialsFromUrl(url: string): string {
   }
 }
 
+/**
+ * Masks a discovered secret value so it can be referenced (e.g. in a UI or
+ * evidence record) without ever displaying it in full. Short values are
+ * fully redacted rather than partially shown, since a short secret has
+ * little to lose by full redaction and much to lose from a partial hint.
+ */
+export function maskSecretValue(secret: string): string {
+  const visibleChars = 3;
+  if (secret.length <= visibleChars * 3) {
+    return "[redacted]";
+  }
+  const maskedLength = Math.min(8, secret.length - visibleChars * 2);
+  return `${secret.slice(0, visibleChars)}${"*".repeat(maskedLength)}${secret.slice(-visibleChars)}`;
+}
+
 const SENSITIVE_KEY_PATTERN = /(password|secret|token|apikey|api_key|privatekey|private_key|authorization)/i;
 
 /**
