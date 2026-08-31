@@ -33,6 +33,27 @@ Status legend: `not started` · `in progress` · `done`
 | 22    | Web Security Engine: SafeHttpClient + 5 passive rules                                       | done — see notes below                                                   |
 | 23    | Source-to-Runtime Correlation: route normalization + path matching                          | done — see notes below                                                   |
 | 24    | Target Authorization API (create/verify/list/revoke)                                        | done — see notes below                                                   |
+| 25    | Web Discovery Engine: bounded crawler (robots.txt, sitemap.xml, forms)                      | done — see notes below                                                   |
+
+## Phase 25 — Web Discovery Engine (bounded crawler)
+
+Full writeup in [docs/web-security-engine.md](web-security-engine.md).
+
+**Built**: `BoundedCrawler` in `packages/web-security-engine/src/
+discovery/` — same-origin-only, budget-bounded (depth/pages/duration),
+built entirely on the existing `SafeHttpClient` so every fetch is already
+Scope-Guard-checked. Respects `robots.txt` `Disallow` rules by default
+(a courtesy on top of, not instead of, the authorization boundary),
+seeds additional discovery from `sitemap.xml`, extracts links/scripts/
+forms via dependency-free regex-based parsing (documented limitation:
+under-discovers on malformed markup or client-rendered SPAs — a
+completeness gap, never a safety one, since every found URL still goes
+through Scope Guard before being requested), and never auto-submits a
+discovered form. 40 new tests (73 total in the package now).
+
+**Explicitly deferred**: no OpenAPI/GraphQL discovery, no authenticated
+crawling, and no job-pipeline wiring — nothing in `apps/worker` calls
+this crawler yet as a real scan job.
 
 ## Phase 24 — Target Authorization API
 

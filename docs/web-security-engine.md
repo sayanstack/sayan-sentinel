@@ -91,25 +91,77 @@ returns `{ url, findings, fetchError? }`. A target Scope Guard denies, or
 that's unreachable, produces a `fetchError` string — never a silently
 empty findings array that could be misread as "scanned clean."
 
+## Bounded crawler (`discovery/`)
+
+`BoundedCrawler` is a conservative, same-origin-only, budget-bounded
+crawler built entirely on `SafeHttpClient` — it makes no request of its
+own; every page fetch goes through the same Scope Guard enforcement,
+timeout, response cap, and redirect re-checking already described above.
+It adds only discovery logic on top:
+
+- **Same-origin only** — an external-origin link is recorded in
+  `skippedExternal` and never followed, matching the spec's "never follow
+  external domains/CDNs/analytics/ads/social unless independently
+  authorized."
+- **Budgets**: `maxDepth` (default 2), `maxPages` (default 25),
+  `maxDurationMs` (default 30s) — hitting any of these sets
+  `truncated: true` on the result rather than silently returning a
+  partial view that looks complete.
+- **`robots.txt` respected by default** (`respectRobotsTxt: true`) — a
+  courtesy on top of, not instead of, the Scope Guard authorization
+  boundary; a missing or unreachable robots.txt means "crawl everything
+  in scope," not "avoid the site."
+- **`sitemap.xml` seeding** (`fetchSitemapUrls`) — a separate, opt-in
+  helper for discovering pages the crawler might not reach by following
+  links alone.
+- **Static assets skipped by default** (`.css`/`.png`/`.woff`/etc.) —
+  never security-relevant to crawl into.
+- **Dedup** — a URL is never fetched twice even if reachable from
+  multiple pages.
+
+Link/script/form extraction (`discovery/html-extract.ts`) is
+deliberately **regex-based, not a full HTML/DOM parser** — this package
+has no HTML-parsing dependency, matching the project's preference for
+dependency-free, fully-auditable security-critical code (the same choice
+`ip-blocklist.ts` makes). This is a documented limitation: severely
+malformed markup or a client-side-rendered SPA's runtime-generated routes
+can under-discover. Under-discovery is a completeness limitation, not a
+safety one — every URL found is still routed through
+`SafeHttpClient`/Scope Guard before ever being requested, so a rule this
+package doesn't find is simply not analyzed, never analyzed unsafely.
+
+Forms are discovered (action, method, field names) but **never
+auto-submitted** — this only reads static markup, matching the spec's
+explicit prohibition on auto-submitting state-changing forms during
+discovery.
+
 ## What's NOT here
 
-There is no bounded crawler, no endpoint/form/script discovery, no
-`TargetAuthorization` persistence or verification-status lookup (the
-verification _primitives_ exist in `packages/hexstrike-adapter/src/
-target-verification/`, per [docs/scope-guard.md](scope-guard.md), but
-nothing here creates or looks up a stored `TargetAuthorizationRecord`
-yet — callers must supply the authorization list directly), no API
-inventory, no OpenAPI import, no authenticated-scan support, and no
-wiring into the worker's job pipeline or the dashboard. This package is a
-tested foundation a future Web Discovery Engine and job-pipeline
-integration would build on, not a usable end-to-end web scan yet.
+There is no endpoint/API discovery beyond what plain link-following and
+sitemap parsing find (no OpenAPI import, no GraphQL introspection), no
+authenticated-scan support (every crawl and passive check runs
+unauthenticated — there's no `AuthenticationProfile` concept here yet),
+and no wiring into the worker's job pipeline or the dashboard — nothing
+in `apps/worker` yet calls `BoundedCrawler`/`scanUrl` as a real job type.
+This package's connection to persisted state is one-directional: a
+caller can look up a real `TargetAuthorization` via `apps/api/src/
+targets/` (see [docs/target-authorization.md](target-authorization.md))
+and convert it with `toScopeGuardRecord` into what `SafeHttpClient`
+expects, but nothing here reaches into the database on its own — the
+package stays persistence-independent by design, matching
+`source-runtime-correlation`'s approach.
 
 ## Testing
 
-33 tests across 6 files: `SafeHttpClient.test.ts` (11 — Scope Guard
+73 tests across 10 files. `SafeHttpClient.test.ts` (11 — Scope Guard
 enforcement, method allowlisting, the redirect-escape refusal, redirect-
 count exhaustion, streamed-body truncation, timeout-vs-network-error
-distinction, custom headers, Set-Cookie collection), one test file per
+distinction, custom headers, Set-Cookie collection), the discovery suite
+(`url-canonicalize.test.ts`, `html-extract.test.ts`,
+`robots-sitemap.test.ts`, `BoundedCrawler.test.ts` — same-origin
+enforcement, depth/page budget truncation, dedup, robots.txt respect,
+form extraction, and a Scope-Guard-denial-recorded-not-thrown case), one
+test file per
 rule (true/false-positive cases, severity discipline), and
 `WebSecurityEngine.test.ts` (orchestration, including the "unreachable
 target reports fetchError" case). All against injected fakes — no real

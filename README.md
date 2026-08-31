@@ -110,13 +110,15 @@ This repository is being built in public, phase by phase, tracked in
   predicate and authorization-guard analysis). See
   [Sentinel Rules Engine](#sentinel-rules-engine) below and
   [docs/rules-engine.md](docs/rules-engine.md).
-- ✅ `packages/web-security-engine` — the beginning of the Web Security
-  Engine: a `SafeHttpClient` that enforces Scope Guard on every request
-  _and every redirect hop_ (closing the "redirect escape" gap), plus 5
-  real passive rules (risky CORS, cookie Secure/HttpOnly, debug info
-  exposure, missing HSTS). This is a tested foundation, not a full web
-  scanner — no crawler/discovery engine or API Security Engine exists
-  yet. See [docs/web-security-engine.md](docs/web-security-engine.md).
+- ✅ `packages/web-security-engine` — a `SafeHttpClient` that enforces
+  Scope Guard on every request _and every redirect hop_ (closing the
+  "redirect escape" gap), 5 real passive rules (risky CORS, cookie
+  Secure/HttpOnly, debug info exposure, missing HSTS), and a bounded,
+  same-origin-only crawler (`BoundedCrawler` — depth/page/duration
+  budgets, robots.txt respect, sitemap.xml seeding, form discovery with
+  no auto-submission). 73 tests. Still no API Security Engine, and
+  nothing here is wired into the worker's job pipeline yet. See
+  [docs/web-security-engine.md](docs/web-security-engine.md).
 - ✅ `packages/source-runtime-correlation` — the Source-to-Runtime
   platform's flagship correlation piece: deterministic route
   normalization (Express/NestJS `:param`, Next.js `[param]`/`[...slug]`)
