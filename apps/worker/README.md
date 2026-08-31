@@ -18,12 +18,18 @@ enqueue jobs onto once it wires up scan-triggering) and `Worker`
 (consumer side, built from real config — real scanner adapters, the real
 AI provider factory, `DEFAULT_POLICY_RULES`).
 
+`src/remediation/` — `generatePatchSuggestion()` (AI-generated fix
+proposals) and `applyApprovedPatchAsPullRequest()`, which refuses to touch
+GitHub at all without an explicit human approval already attached to the
+patch.
+
 ## Not yet wired
 
-Persisting scan/finding results to the database (no findings-persistence
-layer exists yet, so every scan currently treats every finding as freshly
-"open" with no history — documented in the pipeline's own code), and the
-remediation/patch/PR workflow.
+Persisting scan/finding/patch results to the database (no
+persistence layer exists yet, so every scan currently treats every
+finding as freshly "open" with no history — documented in the pipeline's
+own code), and the actual approval UI that decides whether a generated
+patch gets approved.
 
 ## Testing
 

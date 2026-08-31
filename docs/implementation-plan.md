@@ -21,7 +21,7 @@ Status legend: `not started` · `in progress` · `done`
 | 11    | HexStrike AI adapter (real interface)                                                       | done                                                                     |
 | 12    | GitHub App integration                                                                      | done                                                                     |
 | 13    | Policy engine + worker job pipeline                                                         | done                                                                     |
-| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | not started                                                              |
+| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | done                                                                     |
 | 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | not started                                                              |
 | 15    | Vulnerable demo fixture                                                                     | done                                                                     |
 | 16    | Tests + security regression suite                                                           | done                                                                     |
@@ -678,6 +678,48 @@ authorization endpoints don't exist yet, so they aren't IDOR-tested.
 
 Workspace total: 277 tests across 15 packages/apps, 52/52 Turborepo
 tasks green.
+
+## Phase 13b completion notes
+
+Built the remediation workflow (Section 26/27) in `apps/worker/src/remediation/`,
+plus a new `patchSuggestionSchema`/`buildPatchSuggestionPrompt` in
+`packages/ai-engine`.
+
+- **`generatePatchSuggestion()`** — sends the finding + the affected
+  file's full original content (wrapped as untrusted, per the AI
+  engine's existing defenses) to the AI engine and gets back a structured
+  suggestion: an explanation and the complete proposed file content (not
+  a unified diff — GitHub's Contents API needs full content regardless,
+  and hand-rolling diff application is a real source of subtle
+  corruption bugs a simpler, equally correct design avoids). Never
+  throws; a missing provider, missing model, or failed call all resolve
+  to a `"skipped"` result with a reason, consistent with every other
+  AI-consuming code path in this project.
+- **`applyApprovedPatchAsPullRequest()`** — the only path in this
+  codebase that writes a remediation to GitHub. Refuses to run at all —
+  throwing `PatchNotApprovedError` before touching the GitHub client —
+  unless `approvedByUserId` is set. Verified by a test asserting
+  `createBranch`/`commitFileChange`/`createPullRequest` are _never
+  called_ when approval is missing, and that they run in the correct
+  order (branch → commit → PR) when it is. The PR body includes the
+  explanation, any risks/limitations the AI flagged, and the approver's
+  identity for audit.
+- Fixed the same TS2742 "inferred type cannot be named" issue encountered
+  in Phase 12 (a function returning the whole Octokit response needs an
+  explicit return-type annotation) — this time derived directly from
+  `ApplyPatchDependencies["githubClient"]["createPullRequest"]`'s own
+  return type rather than reaching for a separate `@octokit/types`
+  dependency, avoiding the version-mismatch trap from last time.
+
+**What this does not do**: decide whether a patch _should_ be approved —
+that's a human decision via a product UI that doesn't exist yet — or
+persist `Patch`/`PullRequest` rows to the database (no findings/patch
+persistence layer is wired into the worker yet, consistent with the
+Phase 13 pipeline notes).
+
+**Test results**: 9 new tests (5 `generate-patch`, 4
+`apply-approved-patch`), all passing. Workspace total: 286 tests across
+15 packages/apps, 52/52 Turborepo tasks green.
 
 ## Working agreement for remaining phases
 

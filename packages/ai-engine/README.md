@@ -20,12 +20,17 @@ Provider-agnostic AI reasoning layer: Anthropic / OpenAI / local OpenAI-compatib
 - `BudgetGuard` rejects a call whose estimated cost would exceed the
   per-scan or monthly budget _before_ the call is made.
 
+## Task-specific schemas
+
+- `findingAnalysisSchema` + `buildFindingAnalysisPrompt` — false-positive
+  judgment and remediation suggestion for a single finding.
+- `patchSuggestionSchema` + `buildPatchSuggestionPrompt` — generates a
+  complete proposed file content fixing a finding, used by
+  `apps/worker/src/remediation`.
+
 ## Not yet built
 
-Wiring this into the worker's scan pipeline (Phase 12+), and additional
-task-specific schemas beyond the one demonstration
-(`findingAnalysisSchema`) — PR security review, remediation-patch
-generation, etc.
+PR security review (Section 25) as its own schema/prompt pair.
 
 ## Testing
 

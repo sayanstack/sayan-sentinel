@@ -101,9 +101,14 @@ This repository is being built in public, phase by phase, tracked in
   (`canAccessOrganization`), demonstrated end to end via `apps/api`'s
   `GET /repositories/:id`, which returns 404 (not 403) for a cross-tenant
   request rather than confirming the resource exists.
-- 🚧 Everything else — remediation/PR workflow, findings persistence,
-  session-based auth, frontend — is under active development. Nothing not
-  listed above should be assumed to work yet.
+- ✅ Remediation workflow — `generatePatchSuggestion()` (AI-generated fix
+  proposals, untrusted-content-safe) and `applyApprovedPatchAsPullRequest()`,
+  which refuses to touch GitHub at all without an explicit human approval
+  already attached to the patch (verified by a test asserting the GitHub
+  client is never called otherwise).
+- 🚧 Everything else — findings persistence, session-based auth, frontend
+  — is under active development. Nothing not listed above should be
+  assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

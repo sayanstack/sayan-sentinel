@@ -11,3 +11,4 @@ export * from "./providers/openai.provider";
 export * from "./providers/local.provider";
 export * from "./providers/factory";
 export * from "./schemas/finding-analysis.schema";
+export * from "./schemas/patch-suggestion.schema";
