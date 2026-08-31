@@ -6,28 +6,28 @@ until it genuinely works (builds, runs, and is tested).
 
 Status legend: `not started` · `in progress` · `done`
 
-| Phase | Scope                                                                                       | Status                                                              |
-| ----- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 1     | Repository inspection                                                                       | done                                                                |
-| 2     | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done                                                                |
-| 3     | This plan                                                                                   | done                                                                |
-| 4     | Monorepo scaffold, root tooling, contracts                                                  | done                                                                |
-| 5     | Foundational backend (NestJS API skeleton, health/readiness, config, logging)               | done                                                                |
-| 6     | Repository ingestion + code intelligence (AST graph)                                        | done                                                                |
-| 7     | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters)                       | done                                                                |
-| 8     | Findings model + correlation engine                                                         | done                                                                |
-| 9     | AI engine (provider abstraction, schema-validated reasoning)                                | done                                                                |
-| 10    | Scope Guard                                                                                 | done                                                                |
-| 11    | HexStrike AI adapter (real interface)                                                       | done                                                                |
-| 12    | GitHub App integration                                                                      | done                                                                |
-| 13    | Policy engine + worker job pipeline                                                         | done                                                                |
-| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | not started                                                         |
-| 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | not started                                                         |
-| 15    | Vulnerable demo fixture                                                                     | done                                                                |
-| 16    | Tests + security regression suite                                                           | not started                                                         |
+| Phase | Scope                                                                                       | Status                                                                   |
+| ----- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1     | Repository inspection                                                                       | done                                                                     |
+| 2     | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done                                                                     |
+| 3     | This plan                                                                                   | done                                                                     |
+| 4     | Monorepo scaffold, root tooling, contracts                                                  | done                                                                     |
+| 5     | Foundational backend (NestJS API skeleton, health/readiness, config, logging)               | done                                                                     |
+| 6     | Repository ingestion + code intelligence (AST graph)                                        | done                                                                     |
+| 7     | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters)                       | done                                                                     |
+| 8     | Findings model + correlation engine                                                         | done                                                                     |
+| 9     | AI engine (provider abstraction, schema-validated reasoning)                                | done                                                                     |
+| 10    | Scope Guard                                                                                 | done                                                                     |
+| 11    | HexStrike AI adapter (real interface)                                                       | done                                                                     |
+| 12    | GitHub App integration                                                                      | done                                                                     |
+| 13    | Policy engine + worker job pipeline                                                         | done                                                                     |
+| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | not started                                                              |
+| 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | not started                                                              |
+| 15    | Vulnerable demo fixture                                                                     | done                                                                     |
+| 16    | Tests + security regression suite                                                           | not started                                                              |
 | 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
-| 18    | Documentation                                                                               | in progress                                                         |
-| 19    | Full audit                                                                                  | not started                                                         |
+| 18    | Documentation                                                                               | done                                                                     |
+| 19    | Full audit                                                                                  | not started                                                              |
 
 ## Phase 2 research notes (to date)
 
@@ -626,6 +626,19 @@ differences from hand-written code, not logic issues) — fixed with
 `pnpm format` and re-verified the full `build`/`lint`/`typecheck`/`test`
 suite still passes (48/48 tasks), so the CI workflow isn't referencing a
 check that would fail on its first real run.
+
+## Phase 18 completion notes
+
+Wrote the full `docs/` set: `architecture.md`, `threat-model.md`,
+`security-model.md`, `scope-guard.md`, `hexstrike-integration.md`,
+`github-app.md`, `ai-security.md`, `local-development.md`,
+`deployment.md`, `demo.md`, `licensing.md`. Every one was written against
+what's actually built and tested in this repository — not the aspirational
+final product — and each states plainly, in its own text, which
+integrations haven't been exercised live (AI, GitHub App, HexStrike,
+Docker) rather than letting that ambiguity sit implicit. README.md updated
+with a documentation index and its stale "once written" caveats removed
+now that those files exist.
 
 ## Working agreement for remaining phases
 

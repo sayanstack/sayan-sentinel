@@ -169,20 +169,31 @@ pnpm install
 docker compose up -d   # Postgres, Redis, MinIO
 ```
 
-The API/web/worker apps and database schema are not implemented yet — this
-brings up the backing infrastructure only. Follow
-[docs/implementation-plan.md](docs/implementation-plan.md) for what's
-runnable at any given point.
+See [docs/local-development.md](docs/local-development.md) for the full
+setup, including what's genuinely runnable today vs. what needs
+credentials, and [docs/implementation-plan.md](docs/implementation-plan.md)
+for exact phase-by-phase status.
 
-## Security model
+## Documentation
 
-See [docs/threat-model.md](docs/threat-model.md),
-[docs/security-model.md](docs/security-model.md), and
-[docs/scope-guard.md](docs/scope-guard.md) once written. Repository content
-is always treated as untrusted input; dynamic validation is never performed
-against a target that hasn't passed explicit authorization + Scope Guard.
+- [docs/architecture.md](docs/architecture.md) — system design and data flow
+- [docs/threat-model.md](docs/threat-model.md) — threats considered and their mitigations
+- [docs/security-model.md](docs/security-model.md) — the Security Score formula, correlation, tenant isolation
+- [docs/scope-guard.md](docs/scope-guard.md) — the SSRF/DNS-rebinding/authorization boundary
+- [docs/hexstrike-integration.md](docs/hexstrike-integration.md) — HexStrike's real API surface and this adapter
+- [docs/github-app.md](docs/github-app.md) — permissions, webhook security, setup
+- [docs/ai-security.md](docs/ai-security.md) — prompt-injection defense, schema validation, cost control
+- [docs/local-development.md](docs/local-development.md) — setup and everyday commands
+- [docs/deployment.md](docs/deployment.md) — production shape (unverified — no Docker/cloud here)
+- [docs/demo.md](docs/demo.md) — the local demo fixture and what works against it today
+- [docs/licensing.md](docs/licensing.md) — third-party tool licenses
+- [docs/implementation-plan.md](docs/implementation-plan.md) — the authoritative, continuously-updated phase-by-phase status
+
+Repository content is always treated as untrusted input; dynamic
+validation is never performed against a target that hasn't passed
+explicit authorization + Scope Guard.
 
 ## License
 
 [MIT](LICENSE). Third-party scanner licenses are documented in
-`docs/licensing.md` (Phase 7).
+[docs/licensing.md](docs/licensing.md).
