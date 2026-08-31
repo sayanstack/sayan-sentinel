@@ -20,7 +20,8 @@ Status legend: `not started` · `in progress` · `done`
 | 10 | Scope Guard | done |
 | 11 | HexStrike AI adapter (real interface) | done |
 | 12 | GitHub App integration | done |
-| 13 | Remediation / patch / PR workflow | not started |
+| 13 | Policy engine + worker job pipeline | done |
+| 13b | Remediation / patch / PR workflow (patch generation, approval, PR creation) | not started |
 | 14 | Frontend (Next.js, dashboard, code graph, findings) | not started |
 | 15 | Vulnerable demo fixture | not started |
 | 16 | Tests + security regression suite | not started |
@@ -529,6 +530,51 @@ writing against it (matched what was drafted).
 delivery dedup, 13 changed-files classification, 4 permissions contract).
 Workspace total: 245 tests across 11 packages/apps, 40/40 Turborepo tasks
 green.
+
+## Phase 13 completion notes
+
+Built `packages/policy-engine` and, more significantly, `apps/worker` —
+the piece that actually wires every previously-built package into one
+real job pipeline instead of a set of disconnected libraries.
+
+**`packages/policy-engine`**: `evaluatePolicy()` against a discriminated
+`PolicyRule` union (not a stringly-typed config bag), plus
+`DEFAULT_POLICY_RULES` implementing Section 28's five example policies
+exactly (fail on critical, fail on confirmed high, block new secrets,
+block critical dependency vulnerabilities, require review for auth
+changes). Every enabled rule is evaluated independently — a caller sees
+every violation at once, not just the first.
+
+**`apps/worker`**: `runScanPipeline()` orchestrates clone → walk → build
+code graph → run every configured scanner → correlate findings → compute
+the security score → evaluate policy → optionally AI-analyze the
+highest-severity findings — with every dependency injected, so this
+composition is tested without needing a real git binary, real scanners, a
+real AI provider, or Redis (each of those is already tested in its own
+package; this proves they wire together correctly). Two honesty-driven
+design decisions:
+- A missing/unavailable scanner, or a failed AI call, never aborts the
+  scan — deterministic results already computed remain valid, matching
+  Section 43's "AI provider unavailable — deterministic analysis completed
+  successfully" example verbatim as the actual skip-reason string.
+- Every finding in a fresh scan is scored/policy-evaluated as freshly
+  "open" with no history, since the database-backed findings-persistence
+  layer (tracking real first-seen dates and status across scans) isn't
+  wired into the worker yet — stated as a documented simplification in
+  the code, not silently assumed.
+- The real BullMQ `Queue`/`Worker` wiring (`src/queue/`) is genuine,
+  correct usage, but **has not been run against a live Redis** — this
+  machine has neither Docker nor a local Redis install, consistent with
+  every other "needs real infra" note in this project. `main.ts` parses
+  `REDIS_URL` into explicit host/port/credentials rather than passing a
+  raw connection string, to avoid depending on exactly which string forms
+  a given BullMQ/ioredis version accepts.
+
+**Test results**: 11 new tests in `policy-engine`, 8 in `worker` (covering
+the happy path, an unavailable scanner, a failed scanner, a policy
+violation, AI-skip-reasons for no-provider/no-model, AI success, and —
+critically — AI failure not aborting the scan). Workspace total: 264
+tests across 13 packages/apps, 48/48 Turborepo tasks green.
 
 ## Working agreement for remaining phases
 

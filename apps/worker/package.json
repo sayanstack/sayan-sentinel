@@ -1,0 +1,35 @@
+{
+  "name": "@sayan-sentinel/worker",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc-watch -p tsconfig.build.json --onSuccess \"node dist/main.js\"",
+    "start": "node dist/main.js",
+    "clean": "rimraf dist",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@sayan-sentinel/ai-engine": "workspace:*",
+    "@sayan-sentinel/code-intelligence": "workspace:*",
+    "@sayan-sentinel/config": "workspace:*",
+    "@sayan-sentinel/database": "workspace:*",
+    "@sayan-sentinel/findings": "workspace:*",
+    "@sayan-sentinel/github": "workspace:*",
+    "@sayan-sentinel/hexstrike-adapter": "workspace:*",
+    "@sayan-sentinel/policy-engine": "workspace:*",
+    "@sayan-sentinel/security-engine": "workspace:*",
+    "@sayan-sentinel/shared": "workspace:*",
+    "bullmq": "^6.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "rimraf": "^6.0.0",
+    "tsc-watch": "^6.2.1",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

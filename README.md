@@ -78,9 +78,19 @@ This repository is being built in public, phase by phase, tracked in
   a `GitHubAppClient` built against the real `@octokit/app`/`@octokit/rest`
   SDKs. No GitHub App credentials are configured in this environment, so
   the live API calls haven't been exercised end-to-end — stated plainly.
-- 🚧 Everything else — worker orchestration, remediation/PR workflow,
-  policy engine, frontend — is under active development. Nothing not
-  listed above should be assumed to work yet.
+- ✅ `packages/policy-engine` — Section 28's five example repository
+  policies (fail on critical, fail on confirmed high, block new secrets,
+  block critical dependency vulnerabilities, require review for auth
+  changes), independently evaluated and fully typed.
+- ✅ `apps/worker` — the real job pipeline tying everything above
+  together: clone → code graph → every configured scanner → correlation →
+  security score → policy → optional AI analysis of the top findings, with
+  scanner/AI failures degrading gracefully rather than aborting the scan.
+  The BullMQ queue wiring is genuine but unexercised against a live Redis
+  (none available in this environment) — noted plainly, not glossed over.
+- 🚧 Everything else — remediation/PR workflow, findings persistence,
+  frontend — is under active development. Nothing not listed above should
+  be assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a
