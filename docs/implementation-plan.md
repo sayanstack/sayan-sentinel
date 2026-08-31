@@ -22,7 +22,7 @@ Status legend: `not started` · `in progress` · `done`
 | 12    | GitHub App integration                                                                      | done                                                                     |
 | 13    | Policy engine + worker job pipeline                                                         | done                                                                     |
 | 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | done                                                                     |
-| 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | not started                                                              |
+| 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | in progress (2 of 10 nav pages real; rest are honest placeholders)       |
 | 15    | Vulnerable demo fixture                                                                     | done                                                                     |
 | 16    | Tests + security regression suite                                                           | done                                                                     |
 | 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
@@ -754,6 +754,47 @@ was a transient environment issue, not a code regression.
 
 9 new tests (2 repository-listing, 4 dashboard, 3 e2e). Workspace total:
 295 tests across 15 packages/apps, 52/52 Turborepo tasks green.
+
+## Phase 14 completion notes
+
+Built `apps/web` — Next.js 16 (App Router), React 19, Tailwind CSS 4. Two
+of the ten planned nav sections are genuinely real, connected to the two
+`apps/api` endpoints built for exactly this purpose; the other eight
+render an explicit `NotImplementedPage` component rather than being
+omitted from navigation or filled with placeholder data — per Section 44
+("no fake buttons"), a link to a clearly-labeled "not implemented yet"
+page is not deceptive; a page that pretends to work or shows fabricated
+data would be.
+
+- **Overview** (`/`) and **Repositories** (`/repositories`) fetch live
+  from `GET /dashboard/summary` and `GET /repositories` respectively, as
+  React Server Components (no client-side loading spinners needed for the
+  initial render).
+- **Verified in an actual browser, not just built** — this matters more
+  than usual here because the whole point was proving the "no fake data"
+  rule holds under real conditions, not just in code review:
+  1. API not running at all → "Could not reach the Sentinel API at
+     http://localhost:4000. Is it running?"
+  2. API running, Postgres/Redis unreachable → the API's genuine 500
+     ("Internal server error" — NestJS correctly doesn't leak the Prisma
+     stack trace to the client, only to server logs), surfaced honestly
+     in the UI rather than papered over.
+  3. A placeholder page (Code Graph) renders the "Not implemented yet"
+     state with correct active-route sidebar highlighting.
+     All three were screenshotted during development, not assumed.
+- Dark graphite theme (`src/app/globals.css`, Tailwind v4 `@theme`
+  tokens) with a subtle grid background and cyan → blue → violet accents,
+  matching Section 4's direction — deliberately not a neon "hacker
+  terminal" look.
+- `pnpm build` genuinely runs `next build`, which type-checks and
+  statically analyzes every route — it correctly marked `/` and
+  `/repositories` as dynamic (server-rendered per-request, since they
+  fetch live data) and the other eight as static.
+
+**Known gaps, disclosed**: no component/e2e test suite for the frontend
+yet (verified manually in-browser instead, both stated above); Scans,
+Findings, Code Graph, Pull Requests, Policies, Integrations, Activity, and
+Settings remain unbuilt; no Dockerfile for `apps/web` yet.
 
 ## Working agreement for remaining phases
 
