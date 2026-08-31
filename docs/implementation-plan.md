@@ -32,6 +32,34 @@ Status legend: `not started` · `in progress` · `done`
 | 21    | Scope Guard V2 hardening + Target Authorization verification primitives                     | done — see notes below                                                   |
 | 22    | Web Security Engine: SafeHttpClient + 5 passive rules                                       | done — see notes below                                                   |
 | 23    | Source-to-Runtime Correlation: route normalization + path matching                          | done — see notes below                                                   |
+| 24    | Target Authorization API (create/verify/list/revoke)                                        | done — see notes below                                                   |
+
+## Phase 24 — Target Authorization API
+
+Full writeup in [docs/target-authorization.md](target-authorization.md).
+The `TargetAuthorization` Prisma model and `evaluateScopeGuard` already
+existed from earlier phases; this phase built everything between them.
+
+**Built**: `apps/api/src/targets/` (controller + service, full CRUD
+lifecycle with tenant isolation matching `RepositoriesService`'s
+established pattern), the first working use of the `AuditEvent` table
+(`write-audit-event.ts` — the model existed but nothing wrote to it
+before now), activation of NestJS's global `ValidationPipe` (`class-
+validator` was a declared-but-unused dependency), and
+`to-scope-guard-record.ts` — converts a persisted row into
+`evaluateScopeGuard`'s input shape, verified by actually calling the real
+Scope Guard function against it (accepts a verified target, rejects a
+revoked one) rather than asserting the shapes merely look compatible.
+Added the missing `verificationChallenge` field to the schema so a
+challenge generated at target-creation time has somewhere to live until
+verification runs. 13 new tests.
+
+**Explicitly deferred**: no background re-verification-on-expiry job, no
+UI, no worker-job wiring that actually looks up a target by ID for a real
+scan (the pieces exist independently — Target Authorization API, Scope
+Guard, SafeHttpClient — but nothing yet chains them together end to end
+in a job), and `OWNERSHIP_CONFIRMATION` remains schema-only with no
+verification primitive.
 
 ## Phase 23 — Source-to-Runtime Correlation
 

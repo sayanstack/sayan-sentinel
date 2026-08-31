@@ -5,6 +5,7 @@ import { SentinelConfigModule } from "./config/sentinel-config.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { HealthModule } from "./health/health.module";
 import { RepositoriesModule } from "./repositories/repositories.module";
+import { TargetsModule } from "./targets/targets.module";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { RepositoriesModule } from "./repositories/repositories.module";
     }),
     HealthModule,
     RepositoriesModule,
+    TargetsModule,
     DashboardModule,
   ],
 })

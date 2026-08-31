@@ -22,6 +22,7 @@
     "@sayan-sentinel/config": "workspace:*",
     "@sayan-sentinel/database": "workspace:*",
     "@sayan-sentinel/findings": "workspace:*",
+    "@sayan-sentinel/hexstrike-adapter": "workspace:*",
     "@sayan-sentinel/shared": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",

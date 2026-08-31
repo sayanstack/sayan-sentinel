@@ -126,6 +126,12 @@ This repository is being built in public, phase by phase, tracked in
   end-to-end against real routes extracted by the Rules Engine's AST
   parser, not just tested in isolation. See
   [docs/source-runtime-correlation.md](docs/source-runtime-correlation.md).
+- ✅ Target Authorization API (`apps/api/src/targets/`) — real create/
+  verify/list/revoke endpoints backed by the `TargetAuthorization` Prisma
+  model, wired to the DNS TXT/HTTP well-known verification primitives and
+  to Scope Guard itself (a persisted, verified target genuinely passes
+  `evaluateScopeGuard` — proven with the real function, not a mock). See
+  [docs/target-authorization.md](docs/target-authorization.md).
 - ✅ Remediation workflow — `generatePatchSuggestion()` (AI-generated fix
   proposals, untrusted-content-safe) and `applyApprovedPatchAsPullRequest()`,
   which refuses to touch GitHub at all without an explicit human approval

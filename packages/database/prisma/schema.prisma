@@ -317,6 +317,8 @@ model TargetAuthorization {
   port               Int
   allowedPathPrefixes String[]
   verificationMethod VerificationMethod
+  /** The random per-attempt token the owner must publish (DNS TXT) or serve (HTTP well-known) — not a secret, since it's meant to be made public. */
+  verificationChallenge String?
   verifiedAt         DateTime?
   authorizedByUserId String
   expiresAt          DateTime

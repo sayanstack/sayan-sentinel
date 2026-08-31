@@ -59,6 +59,9 @@ importers:
       '@sayan-sentinel/findings':
         specifier: workspace:*
         version: link:../../packages/findings
+      '@sayan-sentinel/hexstrike-adapter':
+        specifier: workspace:*
+        version: link:../../packages/hexstrike-adapter
       '@sayan-sentinel/shared':
         specifier: workspace:*
         version: link:../../packages/shared
