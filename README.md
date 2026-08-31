@@ -40,9 +40,16 @@ This repository is being built in public, phase by phase, tracked in
   redaction, plus `/health/live` and `/health/ready` (the latter genuinely
   checks Postgres and Redis and reports `down` truthfully when they're
   unreachable, verified end-to-end with no infra running)
-- 🚧 Everything else — worker, code intelligence, scanners, AI engine, Scope
-  Guard, HexStrike adapter, GitHub App, frontend — is under active
-  development. Nothing not listed above should be assumed to work yet.
+- ✅ `packages/code-intelligence` — repository ingestion (real `git`
+  subprocess calls, path-traversal/symlink protection, size limits, binary
+  exclusion, no repository code is ever executed) and an AST-based code
+  graph (`ts-morph`) detecting imports, functions/classes/methods, Express
+  and NestJS routes, env-var reads, outbound HTTP calls, Prisma-style
+  queries, and NestJS auth guards
+- 🚧 Everything else — worker orchestration, deterministic scanners, AI
+  engine, Scope Guard, HexStrike adapter, GitHub App, frontend — is under
+  active development. Nothing not listed above should be assumed to work
+  yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

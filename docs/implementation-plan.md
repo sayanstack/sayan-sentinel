@@ -13,7 +13,7 @@ Status legend: `not started` · `in progress` · `done`
 | 3 | This plan | done |
 | 4 | Monorepo scaffold, root tooling, contracts | done |
 | 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | done |
-| 6 | Repository ingestion + code intelligence (AST graph) | not started |
+| 6 | Repository ingestion + code intelligence (AST graph) | done |
 | 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | not started |
 | 8 | Findings model + correlation engine | not started |
 | 9 | AI engine (provider abstraction, schema-validated reasoning) | not started |
@@ -138,6 +138,83 @@ Built `apps/api` (NestJS) and verified with real command output:
   autofix would rewrite a constructor-injected class to `import type`,
   which strips the runtime value `emitDecoratorMetadata` needs — that
   autofix would silently break NestJS dependency injection.
+
+## Phase 6 completion notes
+
+Built `packages/code-intelligence` — real repository ingestion and an
+AST-based code graph, not stubs. Also added `packages/shared/src/redact.ts`
+(credential/secret redaction utilities, since ingestion needed them
+immediately and the AI engine will too — Sections 11/14/31).
+
+**Ingestion** (`src/ingestion/`), treating repository content as untrusted
+throughout:
+- `git-ingestor.ts` — clones a single commit via a blobless partial clone
+  (`--filter=blob:none`) fetching the exact SHA directly (GitHub supports
+  this), with a shallow-branch-fetch fallback if the server refuses direct
+  SHA fetch. Runs `git` via `execFile` with argument arrays (never a shell,
+  so no command-injection surface), sets `GIT_LFS_SKIP_SMUDGE=1` and an
+  empty `core.hooksPath` as defense-in-depth, and enforces a timeout per
+  git subprocess. **Never executes anything from the repository** — only
+  git plumbing commands run.
+- `path-safety.ts` / `file-walker.ts` — path-traversal protection
+  (`resolveWithinRoot`, rejecting `../` escapes and absolute-path escapes),
+  symlink protection (refuses to follow a symlink whose real path resolves
+  outside the ingestion root), vendor/generated directory exclusion,
+  per-file and aggregate repository size limits, and binary exclusion by
+  content sniff (a NUL byte in the first 8KB), not just file extension.
+- **Verified with a real local git repository** (not mocked): the test
+  suite creates an actual origin repo via the `git` binary, commits twice,
+  and asserts `cloneRepositoryAtCommit` (a) checks out the *exact*
+  requested commit rather than just `HEAD`, (b) falls back correctly when
+  `uploadpack.allowReachableSHA1InWant` is disabled on the server, (c)
+  leaves a maliciously named shell script as inert data — it is never
+  executed, and (d) redacts an embedded credential from both the thrown
+  error's message *and* its raw `stderr` (git's own error text embeds the
+  full URL, e.g. `unable to access 'https://user:pass@host/...'` — the
+  first redaction pass missed this and only scrubbed the constructor's own
+  interpolation; fixed by scrubbing the literal raw URL out of stderr too).
+
+**Code graph** (`src/graph/`), built on `ts-morph` (AST-based, not regex):
+- File, function (including named `const x = () => {}`), class, and method
+  nodes.
+- `IMPORTS` edges — resolved for local relative imports (file → file) and
+  external package specifiers (file → synthetic `external_module` node).
+- `EXPOSES_ROUTE` — Express-style `app.get('/path', ...)` and NestJS
+  `@Controller()`/`@Get()` (with prefix + sub-path combined).
+- `READS_FROM` — `process.env.X` and `process.env["X"]` reads, attributed
+  to the containing function via AST-parent-walk, not line-proximity
+  guessing.
+- `CALLS_EXTERNAL` — `fetch(...)`, `axios.*`, `http(s).get/request`, `got`.
+- `QUERIES` + `READS_FROM`/`WRITES_TO` — Prisma-style
+  `prisma.<model>.<verb>(...)`, split by read vs. write verb.
+- `AUTHENTICATES` / `AUTHORIZES` — NestJS `@UseGuards(...)`, classified by
+  a naming heuristic (documented in-code as a heuristic, not a semantic
+  guarantee).
+- Two entry points: `buildCodeGraphFromSources` (in-memory, used by tests)
+  and `buildCodeGraphFromDirectory` (real files — takes the file list
+  `walkRepositoryFiles` already filtered, so exclusion/size limits are
+  enforced in exactly one place, not duplicated).
+
+**Not yet covered** (documented, not hidden): middleware chains,
+non-Prisma ORMs/raw SQL, non-Express/Nest frameworks, cross-file call-graph
+resolution (`CALLS` edges between functions), and languages other than
+TS/JS/JSX — the extension points exist (one file per rule, one builder
+entry point) but only TypeScript/JavaScript has rules implemented, per the
+"initially support excellent TypeScript/JavaScript analysis" scope in
+Section 8.
+
+**Test results**: 30 tests (28 passed, 2 skipped). The 2 skipped are the
+symlink-escape tests — this Windows dev machine's account can't create
+filesystem junctions (probed at runtime; the tests skip themselves rather
+than being asserted false-positive), so symlink protection is implemented
+and code-reviewed but not test-verified in *this* environment. It will run
+for real in CI on Linux. `pnpm build`/`lint`/`typecheck`/`test` are green
+across all 6 packages/apps (20/20 Turborepo tasks).
+
+**Known minor issue**: `apps/api`'s Jest run prints "A worker process has
+failed to exit gracefully" — a leaked handle somewhere in the health
+indicator tests (likely the mocked ioredis client). All tests still pass;
+tracked for cleanup, not blocking.
 
 ## Working agreement for remaining phases
 
