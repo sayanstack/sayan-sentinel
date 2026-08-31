@@ -15,7 +15,7 @@ Status legend: `not started` · `in progress` · `done`
 | 5 | Foundational backend (NestJS API skeleton, health/readiness, config, logging) | done |
 | 6 | Repository ingestion + code intelligence (AST graph) | done |
 | 7 | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters) | done |
-| 8 | Findings model + correlation engine | in progress (canonical model + fingerprinting done; correlation engine itself not started) |
+| 8 | Findings model + correlation engine | done |
 | 9 | AI engine (provider abstraction, schema-validated reasoning) | not started |
 | 10 | Scope Guard | not started |
 | 11 | HexStrike AI adapter (real interface) | not started |
@@ -293,9 +293,42 @@ worse trade than losing that one strictness flag. `strict` and
 passing; `pnpm build`/`lint`/`typecheck`/`test` green (21/21 Turborepo
 tasks).
 
-**Not yet built** (this is Phase 8): the correlation engine that merges
-evidence from multiple sources into one `Finding` instead of one per
-detector, and the security score formula.
+## Phase 8 completion notes
+
+Built into `packages/findings`:
+
+- `correlateFindings()` — groups `FindingDraft`s from potentially
+  different detectors into one `CorrelatedFinding` (with a `detectedBy:
+  FindingSource[]` list) instead of one Finding per detector, per Section
+  16. Matching is deliberately simple and documented as such (union-find
+  over same-file/near-line-range or same-category+symbol pairs) rather
+  than claiming semantic similarity it doesn't do. Confidence escalates
+  one level when 2+ *distinct* sources agree (capped at "confirmed");
+  severity takes the max across the group; the representative
+  title/description is chosen by a documented priority
+  (dynamic_validation > static_analysis > ai_review > secret_detection >
+  dependency_analysis > code_intelligence).
+- **Caught and fixed a real bug via its own test**: the merged fingerprint
+  was only recomputed for multi-source groups — a singleton finding kept
+  its original per-source fingerprint. That meant the same issue would get
+  a *different* fingerprint the moment a second detector started seeing it
+  across scans, defeating the entire "stable fingerprint" premise. Fixed
+  by always computing the source-independent correlation fingerprint,
+  regardless of group size.
+- `computeSecurityScore()` — the **Sentinel Security Score** (explicitly
+  named as Sentinel's own metric, not a claimed industry standard, per
+  Section 17). Formula: start at 100, subtract
+  `severityWeight × confidenceMultiplier × ageMultiplier × validationMultiplier`
+  per currently-open finding, floor at 0. Resolved/false-positive/
+  accepted-risk findings never count; older open findings cost more (up to
+  1.5x at 30+ days); a dynamically-confirmed finding costs 1.2x more than
+  an equivalent unverified one. Fully documented in the function's own
+  doc comment — the formula lives in one place, not scattered across a
+  separate spec doc that could drift from the code.
+
+**Test results**: 28 tests in `packages/findings` (11 correlation, 10
+scoring, 7 fingerprint). Workspace total: 115 tests across 8 packages/apps,
+28/28 Turborepo tasks green.
 
 ## Working agreement for remaining phases
 

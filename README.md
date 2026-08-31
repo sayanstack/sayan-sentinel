@@ -54,10 +54,13 @@ This repository is being built in public, phase by phase, tracked in
   actually exercised end-to-end here; each adapter reports that honestly
   rather than faking a clean scan. Gitleaks findings never carry the raw
   discovered secret — it's masked before the finding is even constructed.
-- 🚧 Everything else — worker orchestration, finding correlation, security
-  score, AI engine, Scope Guard, HexStrike adapter, GitHub App, frontend —
-  is under active development. Nothing not listed above should be assumed
-  to work yet.
+- ✅ Finding correlation (`correlateFindings`) and the **Sentinel Security
+  Score** (`computeSecurityScore`) — both fully documented, deterministic
+  formulas in `packages/findings`, no random or hard-coded numbers.
+- 🚧 Everything else — worker orchestration, AI engine, Scope Guard,
+  HexStrike adapter, GitHub App, remediation/PR workflow, frontend — is
+  under active development. Nothing not listed above should be assumed to
+  work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

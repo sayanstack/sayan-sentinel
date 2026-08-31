@@ -1,8 +1,8 @@
 # @sayan-sentinel/findings
 
-Canonical Finding model and stable fingerprinting.
+Canonical Finding model, stable fingerprinting, cross-detector correlation, and the Sentinel Security Score.
 
-**Status:** model + fingerprinting implemented. Correlation engine (merging evidence from multiple detectors into one Finding) is Phase 8 and not yet built — see [../../docs/implementation-plan.md](../../docs/implementation-plan.md).
+**Status:** all of the above implemented. See [../../docs/implementation-plan.md](../../docs/implementation-plan.md) for detail.
 
 ## What's here
 
@@ -11,6 +11,12 @@ Canonical Finding model and stable fingerprinting.
 - `computeFingerprint()` — anchors on the matched snippet text when
   available (stable across line-number drift caused by unrelated edits),
   falling back to line number only when no snippet exists.
+- `correlateFindings()` — merges drafts from multiple detectors describing
+  the same issue into one `CorrelatedFinding` with a `detectedBy` list,
+  instead of one Finding per detector.
+- `computeSecurityScore()` — the Sentinel Security Score: a documented,
+  deterministic 0-100 formula over open findings (see the function's doc
+  comment for the exact weights).
 
 ## Testing
 
