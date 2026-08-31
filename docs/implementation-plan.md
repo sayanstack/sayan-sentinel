@@ -19,7 +19,7 @@ Status legend: `not started` · `in progress` · `done`
 | 9 | AI engine (provider abstraction, schema-validated reasoning) | done |
 | 10 | Scope Guard | done |
 | 11 | HexStrike AI adapter (real interface) | done |
-| 12 | GitHub App integration | not started |
+| 12 | GitHub App integration | done |
 | 13 | Remediation / patch / PR workflow | not started |
 | 14 | Frontend (Next.js, dashboard, code graph, findings) | not started |
 | 15 | Vulnerable demo fixture | not started |
@@ -479,6 +479,55 @@ git operations under concurrent load. Fixed with a scoped
 cleanup `rmSync` calls — not by weakening what the tests assert.
 
 Workspace total: 217 tests across 10 packages/apps, 36/36 Turborepo tasks
+green.
+
+## Phase 12 completion notes
+
+Built `packages/github`. Verified `@octokit/app`'s real constructor and
+`getInstallationOctokit` shape against its own documentation before
+writing against it (matched what was drafted).
+
+- `verifyWebhookSignature()` — HMAC-SHA256 verification of GitHub's
+  `X-Hub-Signature-256` header, constant-time comparison via
+  `timingSafeEqual` with the length-mismatch case handled explicitly
+  first (`timingSafeEqual` throws rather than returning false on unequal
+  lengths — a common bug source). 7 tests including a tampered-payload
+  case and malformed-header cases that must not throw.
+- `isDuplicateDelivery()` / `InMemoryDeliveryStore` — idempotent webhook
+  processing keyed on GitHub's per-delivery-attempt id (Section 6:
+  "prevent replay/duplicate job problems"); a real deployment backs this
+  with Redis (already in the stack) with a TTL.
+- `classifyChangedFiles()` — fast path/diff-based PR triage (auth logic,
+  authorization logic, database access, sensitive config, dependency
+  manifests, CI/CD config, external requests) feeding Section 25's
+  "Sensitive Files Changed" / focused-PR-review concept. Deliberately
+  lighter-weight than the AST-based code-intelligence graph — this exists
+  to decide *whether* a PR needs deep attention, fast, not to replace deep
+  analysis.
+- `GITHUB_APP_PERMISSIONS` / `GITHUB_APP_WEBHOOK_EVENTS` — the exact,
+  justified minimum-necessary permission set (Section 6), with a
+  "permissions contract" test that fails loudly if a future change adds a
+  scope without the justification comment being updated in the same diff.
+- `GitHubAppClient` wraps `@octokit/app` + `@octokit/rest` for
+  installation sync, PR/file retrieval, check runs, and the
+  branch-commit-PR sequence the remediation workflow needs later. Real,
+  correct SDK usage — but **not exercised against a live GitHub App**, no
+  GitHub App credentials are configured here. Stated plainly.
+- Fixed a genuine TypeScript declaration-emission bug along the way
+  (TS2742: "inferred type cannot be named") for the four methods that
+  return the *whole* Octokit response rather than just `.data` — those
+  needed explicit return-type annotations. Initially over-corrected by
+  annotating *every* method via a separately-imported `@octokit/types`
+  dependency, which triggered a real version-mismatch bug (pnpm resolved
+  three different `@octokit/types` versions simultaneously, and their
+  `id: number` vs `id: number | bigint` shapes conflicted). Fixed properly
+  by deriving return types from the `OctokitRest` instance type itself
+  (one source of truth, no separate dependency) and only annotating the
+  four methods that actually needed it.
+
+**Test results**: 28 new tests in `github` (7 signature verification, 4
+delivery dedup, 13 changed-files classification, 4 permissions contract).
+Workspace total: 245 tests across 11 packages/apps, 40/40 Turborepo tasks
 green.
 
 ## Working agreement for remaining phases

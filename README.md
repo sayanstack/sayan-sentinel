@@ -72,9 +72,15 @@ This repository is being built in public, phase by phase, tracked in
   inspecting actual error output from the connected `hexstrike-ai` MCP
   server, not guessed). Only Tier 0/1 capabilities are offered; Tier 2 is
   gated and Tier 3 destructive automation is never implemented.
-- 🚧 Everything else — worker orchestration, GitHub App, remediation/PR
-  workflow, frontend — is under active development. Nothing not listed
-  above should be assumed to work yet.
+- ✅ `packages/github` — webhook signature verification, idempotent
+  delivery handling, fast PR-diff sensitivity triage, a minimum-necessary
+  permissions manifest (with a test that fails loudly on scope creep), and
+  a `GitHubAppClient` built against the real `@octokit/app`/`@octokit/rest`
+  SDKs. No GitHub App credentials are configured in this environment, so
+  the live API calls haven't been exercised end-to-end — stated plainly.
+- 🚧 Everything else — worker orchestration, remediation/PR workflow,
+  policy engine, frontend — is under active development. Nothing not
+  listed above should be assumed to work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a
