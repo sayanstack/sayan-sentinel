@@ -110,6 +110,13 @@ This repository is being built in public, phase by phase, tracked in
   predicate and authorization-guard analysis). See
   [Sentinel Rules Engine](#sentinel-rules-engine) below and
   [docs/rules-engine.md](docs/rules-engine.md).
+- ✅ `packages/web-security-engine` — the beginning of the Web Security
+  Engine: a `SafeHttpClient` that enforces Scope Guard on every request
+  _and every redirect hop_ (closing the "redirect escape" gap), plus 5
+  real passive rules (risky CORS, cookie Secure/HttpOnly, debug info
+  exposure, missing HSTS). This is a tested foundation, not a full web
+  scanner — no crawler/discovery engine or API Security Engine exists
+  yet. See [docs/web-security-engine.md](docs/web-security-engine.md).
 - ✅ Remediation workflow — `generatePatchSuggestion()` (AI-generated fix
   proposals, untrusted-content-safe) and `applyApprovedPatchAsPullRequest()`,
   which refuses to touch GitHub at all without an explicit human approval
@@ -235,8 +242,9 @@ packages/
   ai-engine/           provider-agnostic AI reasoning layer
   findings/            canonical Finding model + correlation
   policy-engine/       repository policy evaluation
-  hexstrike-adapter/   dynamic validation provider (Scope Guard-gated)
+  hexstrike-adapter/   dynamic validation provider (Scope Guard-gated) + target verification
   rules-engine/        Sentinel Rules Engine — AST/call-graph/taint-based SAST, no AI required
+  web-security-engine/ SafeHttpClient + passive web security rules (CORS, cookies, headers)
   shared/              cross-cutting types/utilities
   config/              typed environment/config loading
 examples/

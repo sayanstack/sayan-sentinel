@@ -30,6 +30,36 @@ Status legend: `not started` · `in progress` · `done`
 | 19    | Full audit                                                                                  | done                                                                     |
 | 20    | Sentinel Rules Engine (AST/call-graph/taint-based SAST, no AI required)                     | done — see notes below                                                   |
 | 21    | Scope Guard V2 hardening + Target Authorization verification primitives                     | done — see notes below                                                   |
+| 22    | Web Security Engine: SafeHttpClient + 5 passive rules                                       | done — see notes below                                                   |
+
+## Phase 22 — Web Security Engine (SafeHttpClient + passive rules)
+
+New `packages/web-security-engine`. Full writeup in
+[docs/web-security-engine.md](web-security-engine.md) — summary here.
+
+**Built**: `SafeHttpClient`, the centralized HTTP client the Source-to-
+Runtime spec requires every web rule to share — enforces the method
+allowlist, Scope Guard (re-checked on **every redirect hop**, closing the
+"redirect escape" gap `scope-guard.ts` documents as a caller
+responsibility), a timeout, a bounded redirect count, and a response-size
+cap enforced during transfer for a real streaming response. `Set-Cookie`
+headers are collected separately from ordinary headers (multiple cookies
+can't be safely comma-joined — `Expires` values contain commas
+themselves) using the standardized `Headers.getSetCookie()`. 5 passive
+rules on top of it: `SENTINEL-WEB-001` (CORS — actually probes with a
+synthetic Origin header and checks for reflection, not just a static
+header read), `002`/`003` (cookie Secure/HttpOnly, name-based severity so
+a session cookie is weighted higher than a preference cookie), `004`
+(debug/stack-trace signature detection across 7 frameworks/languages),
+`006` (missing HSTS). 33 tests, all against injected fakes.
+
+**Explicitly deferred**: `SENTINEL-WEB-005`/`007`, the bounded crawler/
+discovery engine, form/script/API discovery, TLS/mixed-content analysis,
+technology fingerprinting, `packages/api-security-engine/`, OpenAPI
+import, authenticated scans, `TargetAuthorization` persistence (callers
+must supply the authorization list directly — no DB-backed create/lookup
+exists), and any job-pipeline/dashboard wiring. This is a tested
+foundation, not a usable end-to-end web scan.
 
 ## Phase 21 — Scope Guard hardening + Target Authorization verification
 
