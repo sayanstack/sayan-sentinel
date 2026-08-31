@@ -1,0 +1,32 @@
+{
+  "name": "sayan-sentinel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-native application security and code intelligence platform.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.12.4",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:migrate": "pnpm --filter @sayan-sentinel/database migrate",
+    "db:seed": "pnpm --filter @sayan-sentinel/database seed",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0",
+    "prettier": "^3.4.0",
+    "rimraf": "^6.0.0"
+  }
+}

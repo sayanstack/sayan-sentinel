@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+.turbo/
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# testing
+coverage/
+playwright-report/
+test-results/
+
+# db
+*.sqlite
+*.sqlite3
+
+# ide / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ephemeral scan workspaces (never commit ingested repo content)
+.sentinel/workspaces/
+.sentinel/tmp/
+
+# secrets / credentials (defense in depth, never intended to hold real secrets)
+*.pem
+*.key
+secrets/

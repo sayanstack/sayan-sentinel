@@ -1,0 +1,61 @@
+# Local development infrastructure for Sayan Sentinel.
+#
+# This currently provisions the backing services (Postgres, Redis, MinIO).
+# The app/api/worker containers are added in a later build phase once their
+# Dockerfiles exist — see docs/implementation-plan.md. Until then, run
+# `pnpm dev` against these services from the host.
+name: sayan-sentinel
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - sentinel_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - sentinel_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: sentinel
+      MINIO_ROOT_PASSWORD: sentinel-dev-only
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - sentinel_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sentinel_postgres_data:
+  sentinel_redis_data:
+  sentinel_minio_data:

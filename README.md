@@ -1,0 +1,127 @@
+# Sayan Sentinel
+
+**AI-Native Application Security & Code Intelligence**
+
+> Understand your code. Find vulnerabilities. Verify safely. Fix intelligently. Ship safer software.
+
+![status](https://img.shields.io/badge/status-early--development-orange)
+![license](https://img.shields.io/badge/license-MIT-blue)
+![node](https://img.shields.io/badge/node-%3E%3D20.11-339933)
+
+Built by [Sayan Stack](https://github.com/).
+
+---
+
+## What this is
+
+Sayan Sentinel connects to an authorized GitHub repository, builds an
+internal code graph, runs deterministic security analysis (SAST, secret
+detection, dependency scanning), correlates the results with AI-assisted
+reasoning, and — only against explicitly authorized targets, behind a
+deterministic Scope Guard — offers optional dynamic validation via
+[HexStrike AI](https://github.com/) before generating a human-reviewed
+remediation PR.
+
+This is **not** a vulnerability scanner you point at arbitrary internet
+targets, and it does not claim a capability is complete unless it genuinely
+is. See [Status](#status) below for exactly what's real today.
+
+## Status
+
+This repository is being built in public, phase by phase, tracked in
+[docs/implementation-plan.md](docs/implementation-plan.md). Currently:
+
+- ✅ Monorepo scaffold (pnpm + Turborepo), root tooling, local infra
+  (`docker compose up` for Postgres/Redis/MinIO)
+- 🚧 Everything else — API, worker, code intelligence, scanners, AI engine,
+  Scope Guard, HexStrike adapter, GitHub App, frontend — is under active
+  development. Nothing below "Roadmap" should be assumed to work yet.
+
+No fake scanners, no fabricated findings, no hard-coded security scores, no
+mock GitHub data will ever ship here — an unfinished feature is left in a
+clearly-labeled "not implemented yet" or "not configured" state instead.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    GH[GitHub] --> ING[Ingestion]
+    ING --> CI[Code Intelligence]
+    CI --> SA[Static Analysis]
+    CI --> SEC[Secret Detection]
+    CI --> DEP[Dependency Analysis]
+    CI --> AI[AI Review]
+    SA --> CORR[Correlation Engine]
+    SEC --> CORR
+    DEP --> CORR
+    AI --> CORR
+    CORR --> FIND[Findings]
+    FIND --> AUTH[Authorized Validation]
+    AUTH --> SG[Scope Guard]
+    SG --> HX[HexStrike]
+    HX --> EV[Evidence Engine]
+    EV --> REM[Remediation]
+    REM --> APPROVE[Human Approval]
+    APPROVE --> PR[GitHub PR]
+```
+
+Full diagrams (scan pipeline, correlation, HexStrike authorization flow,
+GitHub event flow) live in [docs/architecture.md](docs/architecture.md).
+
+## Monorepo layout
+
+```
+apps/
+  web/      Next.js frontend
+  api/      NestJS API
+  worker/   BullMQ job processors
+packages/
+  ui/                  shared component library
+  database/            Prisma schema + client
+  auth/                session-based auth
+  github/              GitHub App integration
+  code-intelligence/   AST-based code graph
+  security-engine/     Semgrep / Gitleaks / OSV-Scanner adapters
+  ai-engine/           provider-agnostic AI reasoning layer
+  findings/            canonical Finding model + correlation
+  policy-engine/       repository policy evaluation
+  hexstrike-adapter/   dynamic validation provider (Scope Guard-gated)
+  shared/              cross-cutting types/utilities
+  config/              typed environment/config loading
+examples/
+  vulnerable-demo-app/ intentionally vulnerable local fixture
+docs/                  architecture, threat model, integration docs
+```
+
+## Technology
+
+TypeScript · Next.js · React · Tailwind · NestJS · PostgreSQL · Prisma ·
+Redis/BullMQ · Docker · GitHub Actions.
+
+## Quick start (current state)
+
+```bash
+git clone <repo-url> sayan-sentinel
+cd sayan-sentinel
+cp .env.example .env
+pnpm install
+docker compose up -d   # Postgres, Redis, MinIO
+```
+
+The API/web/worker apps and database schema are not implemented yet — this
+brings up the backing infrastructure only. Follow
+[docs/implementation-plan.md](docs/implementation-plan.md) for what's
+runnable at any given point.
+
+## Security model
+
+See [docs/threat-model.md](docs/threat-model.md),
+[docs/security-model.md](docs/security-model.md), and
+[docs/scope-guard.md](docs/scope-guard.md) once written. Repository content
+is always treated as untrusted input; dynamic validation is never performed
+against a target that hasn't passed explicit authorization + Scope Guard.
+
+## License
+
+[MIT](LICENSE). Third-party scanner licenses are documented in
+`docs/licensing.md` (Phase 7).
