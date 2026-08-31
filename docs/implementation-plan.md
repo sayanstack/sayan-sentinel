@@ -29,6 +29,50 @@ Status legend: `not started` · `in progress` · `done`
 | 18    | Documentation                                                                               | done                                                                     |
 | 19    | Full audit                                                                                  | done                                                                     |
 | 20    | Sentinel Rules Engine (AST/call-graph/taint-based SAST, no AI required)                     | done — see notes below                                                   |
+| 21    | Scope Guard V2 hardening + Target Authorization verification primitives                     | done — see notes below                                                   |
+
+## Phase 21 — Scope Guard hardening + Target Authorization verification
+
+Picking up the Source-to-Runtime spec's Scope Guard V2 / Target
+Authorization v2 requirements, scoped to what's tractable without a
+persistence layer (no `TargetAuthorization` DB model or API exists yet —
+see Phase 20's deferral note, which applies here too).
+
+**Found and fixed a real Scope Guard bug**, not a hypothetical one:
+verified empirically (`node -e`, not assumed) that `new URL("http://[::1]/").hostname`
+returns `"[::1]"` with brackets attached, and `net.isIP("[::1]")` returns
+`0`. This meant an IPv6-literal URL bypassed `evaluateScopeGuard`'s
+fast-path localhost check (`"[::1]" !== "::1"`) and caused
+`resolveAndCheckHost` to attempt a DNS lookup of the bracketed string
+instead of recognizing it as a literal IP directly. It happened to still
+end up blocked on this system only because the OS resolver's
+`dns.lookup` tolerated and re-normalized the bracketed input — not a
+property to depend on across platforms. Fixed by stripping the brackets
+before any hostname comparison. Fixing _that_ surfaced a second, related
+gap: with brackets stripped, an IPv4-mapped IPv6 literal like
+`[::ffff:127.0.0.1]` is checked as the literal address `::ffff:7f00:1`
+(the hex-hextet form `net.isIP` produces) rather than being DNS-resolved
+first — and the existing `isBlockedIPv6` only recognized the
+dotted-decimal form (`::ffff:127.0.0.1`), not hex-hextet, so this
+specific bypass would have sailed through undetected after the first fix
+alone. Fixed `isBlockedIPv6` to recognize both forms. 3 regression tests
+added (`scope-guard.test.ts` x2, `ip-blocklist.test.ts` x1).
+
+**New**: `packages/hexstrike-adapter/src/target-verification/` — DNS TXT
+and HTTP well-known domain-ownership verification (the ACME DNS-01/
+HTTP-01 pattern), with the HTTP method routed through the same
+SSRF-safety check Scope Guard itself uses before ever connecting, and
+never following redirects. 17 tests, all against injected fakes (no real
+DNS/HTTP calls in the suite). Full writeup in
+[docs/scope-guard.md](scope-guard.md).
+
+**Explicitly deferred**: no `TargetAuthorization` persistence model,
+Prisma schema, or API/CRUD endpoints exist yet to actually create,
+re-verify-on-expiry, or revoke a target authorization — these are pure,
+tested verification _primitives_ a future persistence layer calls, not a
+complete workflow. `packages/web-security-engine/` (SafeHttpClient,
+discovery, passive web rules), `packages/api-security-engine/`, and
+everything downstream of those in Spec B remain unstarted.
 
 ## Phase 20 — Sentinel Rules Engine
 
