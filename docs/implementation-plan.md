@@ -28,6 +28,55 @@ Status legend: `not started` · `in progress` · `done`
 | 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
 | 18    | Documentation                                                                               | done                                                                     |
 | 19    | Full audit                                                                                  | done                                                                     |
+| 20    | Sentinel Rules Engine (AST/call-graph/taint-based SAST, no AI required)                     | done — see notes below                                                   |
+
+## Phase 20 — Sentinel Rules Engine
+
+Delivered `packages/rules-engine`: a first-party, fully offline static
+analysis engine per the "SENTINEL RULES ENGINE" specification the user
+provided. Full architecture, rule catalog, taint/authorization design,
+self-scan results, and documented limitations are in
+[docs/rules-engine.md](rules-engine.md) — not duplicated here.
+
+**Scope actually delivered** (of the ~67-section spec): the core engine
+(AST analysis via `ts-morph`, interprocedural call graph via the
+TypeScript checker, CFG guard-dominance, a SOURCE→TRANSFORM→SINK taint
+engine with a sanitizer-vs-validator distinction enforced per sink
+category), the Authorization Analyzer (the explicitly-requested flagship
+capability), 8 rules (`SENTINEL-AUTHZ-001`/`004`, `SENTINEL-INJ-001`/`002`/
+`003`, `SENTINEL-FS-001`, `SENTINEL-SSRF-001`, `SENTINEL-DATA-001`),
+Express/NestJS/Next.js framework support, confidence scoring, evidence-
+first findings with full traces, a CLI (`sentinel scan` with table/json/
+sarif output and documented exit codes 0/1/2), SARIF output, inline
+suppressions with mandatory reasons, per-rule config overrides,
+correlation-pipeline integration (new `rules_engine` finding source,
+`RulesEngineScannerAdapter` wired into `apps/worker`'s scan pipeline),
+33 tests (true/false-positive fixtures, three adversarial AUTHZ-001
+cases, suppression/config tests), and a genuine self-scan against this
+repository that found and fixed one real false positive.
+
+**Explicitly deferred, not faked**: `SENTINEL-AUTHZ-002`/`003`,
+`SENTINEL-AUTHN-*`, `SENTINEL-API-*`, `SENTINEL-DATA-002`/`003`, JWT/
+crypto/CORS/webhook-specific rules, baseline-mode diffing beyond the CLI's
+basic fingerprint-set comparison, incremental (changed-files-only)
+analysis, a dedicated benchmark harness, and a Rule Explorer UI page (no
+frontend page reads from the Rule Registry yet). The architecture places
+no obstacle in front of adding any of these — the taint engine, call
+graph, and confidence model are reused by every rule, not rebuilt per
+rule — but implementing all ~30 rules named in the original specification
+to the same depth as AUTHZ-001 was not realistic within this session
+alongside the verification/self-scan/documentation work the spec itself
+requires before calling any of it done.
+
+The much larger, separately-specified "SOURCE-TO-RUNTIME APPLICATION
+SECURITY PLATFORM" follow-on (Target Authorization v2, Web/API Security
+Engines, source-to-runtime correlation, Application Graph, Sentinel Lab,
+Live Demo hosting) was **not started** in this session — it is an
+independently multi-week scope on top of the above, and starting it
+without the runway to also verify/self-scan/document it to the same
+standard risked producing exactly the "explain the architecture instead
+of building it" outcome both specs explicitly rule out. It remains fully
+specified and ready to pick up.
 
 ## Phase 2 research notes (to date)
 

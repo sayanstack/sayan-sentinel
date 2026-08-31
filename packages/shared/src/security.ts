@@ -27,6 +27,7 @@ export const FINDING_SOURCES = [
   "secret_detection",
   "dependency_analysis",
   "code_intelligence",
+  "rules_engine",
   "ai_review",
   "dynamic_validation",
 ] as const;

@@ -101,6 +101,15 @@ This repository is being built in public, phase by phase, tracked in
   (`canAccessOrganization`), demonstrated end to end via `apps/api`'s
   `GET /repositories/:id`, which returns 404 (not 403) for a cross-tenant
   request rather than confirming the resource exists.
+- ✅ `packages/rules-engine` — the **Sentinel Rules Engine**: a first-party,
+  fully offline static analysis engine (real AST parsing, an
+  interprocedural call graph resolved via the TypeScript checker, a
+  lightweight control-flow analysis, and a source→sink taint engine) that
+  discovers findings with **no AI API call**. 8 rules implemented,
+  flagship is `SENTINEL-AUTHZ-001` (BOLA/IDOR detection via ownership-
+  predicate and authorization-guard analysis). See
+  [Sentinel Rules Engine](#sentinel-rules-engine) below and
+  [docs/rules-engine.md](docs/rules-engine.md).
 - ✅ Remediation workflow — `generatePatchSuggestion()` (AI-generated fix
   proposals, untrusted-content-safe) and `applyApprovedPatchAsPullRequest()`,
   which refuses to touch GitHub at all without an explicit human approval
@@ -118,6 +127,69 @@ This repository is being built in public, phase by phase, tracked in
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a
 clearly-labeled "not implemented yet" or "not configured" state instead.
+
+## Sentinel Rules Engine
+
+Sentinel has its own framework-aware static analysis engine capable of
+tracing user-controlled data across routes, services, and database
+operations to detect authorization and application-security flaws —
+**without requiring an LLM**. AI, where configured elsewhere in Sentinel,
+may explain a finding afterward; it never discovers one for these rules.
+
+Real CLI output, run against this repository (`sentinel scan .`):
+
+```
+Sentinel Rules Engine — 8 rule(s) executed in 160ms
+
+[CRITICAL] SENTINEL-INJ-002 — Potential OS Command Injection
+  examples/vulnerable-demo-app/src/app.js:74 (POST /preview-template)
+  Confidence: medium (60/100)
+  Detected: untrusted input from request body reaches eval(...) with no neutralizing transform observed. Observed: the command string is constructed from this value.
+
+[HIGH] SENTINEL-AUTHZ-001 — Potential Broken Object-Level Authorization (BOLA/IDOR)
+  packages/rules-engine/src/testing/fixtures/authz-001/vulnerable.ts:10 (GET /api/accounts/{accountId})
+  Confidence: high (85/100)
+  Detected: user-controlled resource identifier reaches prisma.account.findUnique(...) filtered only by `where.id`. Observed: no ownership/tenant predicate in the query, no authorization guard dominating the lookup. No observable control found before the result reaches the response.
+
+Summary: 4 finding(s) — critical: 1, high: 3, medium: 0, low/info: 0
+```
+
+(Two more `SENTINEL-AUTHZ-001` findings, omitted above for length, are the
+same rule firing on the package's own adversarial test fixtures —
+`adversarial-renamed-and-validated.ts` and `adversarial-service-layer.ts`
+— confirming the taint engine correctly follows variable renaming,
+format-validator chaining, and one hop of interprocedural service-layer
+resolution. Full, unedited output: `sentinel scan . --format table`.)
+
+(The 3 "high" findings in that run are the Rules Engine's own
+intentionally-vulnerable test fixtures under
+`packages/rules-engine/src/testing/fixtures/` — correctly flagged, not a
+defect. Excluding fixtures and the intentionally vulnerable demo app, the
+scan of this repository's actual product code is clean.)
+
+- ✅ AST Analysis — real TypeScript Compiler API parsing via `ts-morph`,
+  not regex
+- ✅ Call Graph — interprocedural resolution via the TypeScript type
+  checker (`route handler → service → repository → database`)
+- ✅ Data Flow — a SOURCE→PROPAGATOR→TRANSFORM→SINK taint engine with a
+  sanitizer-vs-validator distinction enforced per sink category
+- ✅ Authorization Analysis — `SENTINEL-AUTHZ-001` (BOLA/IDOR): ownership
+  predicate detection, CFG guard-dominance, "fetch-then-check" safe
+  pattern recognition
+- ✅ Framework-Aware Rules — Express, NestJS, Next.js App Router (routes
+  and page components)
+- ✅ SAST Correlation — findings flow through the same correlation engine
+  as Semgrep, with a distinct `rules_engine` source so agreement between
+  detectors escalates confidence rather than deduplicating
+- ✅ SARIF — a real `sentinel scan --format sarif` output with a
+  driver-rules array populated from the actual Rule Registry
+- ✅ No AI API Required — zero dependency on any AI package or network
+  call anywhere in `packages/rules-engine`
+
+See [docs/rules-engine.md](docs/rules-engine.md) for the full rule
+catalog, the taint/authorization architecture, self-scan results
+(including a real false positive found and fixed during development),
+and documented limitations.
 
 ## Architecture
 
@@ -164,6 +236,7 @@ packages/
   findings/            canonical Finding model + correlation
   policy-engine/       repository policy evaluation
   hexstrike-adapter/   dynamic validation provider (Scope Guard-gated)
+  rules-engine/        Sentinel Rules Engine — AST/call-graph/taint-based SAST, no AI required
   shared/              cross-cutting types/utilities
   config/              typed environment/config loading
 examples/

@@ -1,0 +1,33 @@
+{
+  "name": "@sayan-sentinel/rules-engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "sentinel": "./dist/cli/bin.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rimraf dist",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "bench": "tsx src/testing/bench.ts"
+  },
+  "dependencies": {
+    "@sayan-sentinel/code-intelligence": "workspace:*",
+    "@sayan-sentinel/findings": "workspace:*",
+    "@sayan-sentinel/security-engine": "workspace:*",
+    "@sayan-sentinel/shared": "workspace:*",
+    "ts-morph": "^28.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "rimraf": "^6.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

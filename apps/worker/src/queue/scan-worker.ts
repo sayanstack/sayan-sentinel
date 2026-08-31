@@ -11,6 +11,7 @@ import {
   SemgrepAdapter,
   type ScannerAdapter,
 } from "@sayan-sentinel/security-engine";
+import { RulesEngineScannerAdapter } from "@sayan-sentinel/rules-engine";
 import { DEFAULT_POLICY_RULES } from "@sayan-sentinel/policy-engine";
 import type { ConnectionOptions, Job } from "bullmq";
 import { Worker } from "bullmq";
@@ -20,6 +21,10 @@ import { SCAN_QUEUE_NAME, type ScanJobData } from "./queue-names";
 
 function buildScanners(config: SentinelConfig): ScannerAdapter[] {
   return [
+    // First-party, always-available — runs before the external subprocess-based
+    // scanners so its findings are present even when none of Semgrep/Gitleaks/
+    // OSV-Scanner are installed (SENTINEL_NO_AI / no-external-tools environments).
+    new RulesEngineScannerAdapter(),
     new SemgrepAdapter({ bin: config.env.SEMGREP_BIN }),
     new GitleaksAdapter({ bin: config.env.GITLEAKS_BIN }),
     new OsvScannerAdapter({ bin: config.env.OSV_SCANNER_BIN }),

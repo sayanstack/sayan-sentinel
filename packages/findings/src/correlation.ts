@@ -23,15 +23,19 @@ const DEFAULT_LINE_PROXIMITY = 2;
 /**
  * Representative-selection priority when merging a group: a dynamic
  * validation result is proven, not inferred, so its account of the issue
- * wins; static analysis tends to have the most precise rule-based message
- * next; AI review adds business-logic context but no more certainty than
- * static analysis; secret/dependency/code-intelligence findings are
- * narrowest in scope. This ordering only decides whose title/description/
- * category "wins" for display — severity and confidence are computed
- * across the whole group, not taken from the representative alone.
+ * wins; the Sentinel Rules Engine produces structured, evidence-first
+ * findings (source/sink/trace/guards) from first-party AST and data-flow
+ * analysis, which is more precise than generic pattern-matching, so it
+ * ranks next; static analysis tends to have the most precise rule-based
+ * message after that; AI review adds business-logic context but no more
+ * certainty than static analysis; secret/dependency/code-intelligence
+ * findings are narrowest in scope. This ordering only decides whose title/
+ * description/category "wins" for display — severity and confidence are
+ * computed across the whole group, not taken from the representative alone.
  */
 const REPRESENTATIVE_PRIORITY: FindingSource[] = [
   "dynamic_validation",
+  "rules_engine",
   "static_analysis",
   "ai_review",
   "secret_detection",

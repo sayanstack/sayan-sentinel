@@ -21,6 +21,7 @@
     "@sayan-sentinel/github": "workspace:*",
     "@sayan-sentinel/hexstrike-adapter": "workspace:*",
     "@sayan-sentinel/policy-engine": "workspace:*",
+    "@sayan-sentinel/rules-engine": "workspace:*",
     "@sayan-sentinel/security-engine": "workspace:*",
     "@sayan-sentinel/shared": "workspace:*",
     "bullmq": "^6.3.3"
