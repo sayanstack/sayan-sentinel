@@ -224,6 +224,57 @@ export function revokeTarget(id: string): Promise<TargetAuthorizationSummary> {
   return apiFetch<TargetAuthorizationSummary>(`/targets/${id}/revoke`, { method: "POST" });
 }
 
+export interface ProviderDetection {
+  host: string;
+  resolvable: boolean;
+  nameservers: string[];
+  nameserverProvider: string | null;
+  cname: string | null;
+  hostingProvider: string | null;
+  addresses: string[];
+}
+
+export interface QuickStartResult {
+  target: TargetAuthorizationSummary;
+  detection: ProviderDetection;
+}
+
+/** The one-field onboarding path — no organization picker, no scheme/port/method fields. */
+export function quickStartTarget(host: string): Promise<QuickStartResult> {
+  return apiFetch<QuickStartResult>("/targets/quick-start", { method: "POST", body: { host } });
+}
+
+export interface WebFindingEvidence {
+  label: string;
+  detail: string;
+}
+
+export interface QuickScanFinding {
+  ruleId: string;
+  title: string;
+  description: string;
+  severity: Severity;
+  confidence: string;
+  reason: string;
+  url: string;
+  evidence: WebFindingEvidence[];
+  remediation: string;
+}
+
+export interface QuickScanResult {
+  scannedUrl: string;
+  schemeUsed: "http" | "https";
+  visitedCount: number;
+  truncated: boolean;
+  findings: QuickScanFinding[];
+  fetchError?: string;
+}
+
+/** Unpersisted, on-demand dynamic scan — see `runQuickScan` on the API for why this doesn't appear in the persisted Findings dashboard. */
+export function scanTarget(id: string): Promise<QuickScanResult> {
+  return apiFetch<QuickScanResult>(`/targets/${id}/scan`, { method: "POST" });
+}
+
 export type ScanTrigger = "MANUAL" | "PUSH" | "PULL_REQUEST" | "SCHEDULED";
 export type ScanStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
 

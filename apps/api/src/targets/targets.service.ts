@@ -11,11 +11,21 @@ import {
 import { writeAuditEvent } from "../audit/write-audit-event";
 import { resolveDemoUserId } from "../common/resolve-demo-user-id";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
+import { detectProvider, type ProviderDetection } from "./detect-provider";
 import type { CreateTargetDto } from "./dto/create-target.dto";
+import { normalizeHost } from "./normalize-host";
+import { runQuickScan, type QuickScanResult } from "./run-quick-scan";
 
 const DEFAULT_EXPIRES_IN_DAYS = 30;
 const DEFAULT_MAX_TIER = 0;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const QUICK_START_SCHEME = "https";
+const QUICK_START_PORT = 443;
+
+export interface QuickStartResult {
+  target: TargetAuthorization;
+  detection: ProviderDetection;
+}
 
 function toPrimitiveVerificationMethod(method: string): PrimitiveVerificationMethod {
   return method === "DNS_TXT" ? "dns_txt" : "http_well_known";
@@ -87,6 +97,65 @@ export class TargetsService {
     });
 
     return target;
+  }
+
+  /**
+   * The one-field onboarding path: given just a domain, resolves the
+   * caller's organization automatically (today's demo-auth model has
+   * exactly one organization per user, matching every other controller's
+   * interim single-tenant assumption — see `resolveDemoUserId`), runs
+   * best-effort DNS provider detection so the caller can show tailored
+   * "here's where to add this DNS record" copy, and creates the target
+   * with sensible defaults (https, 443, DNS TXT) so the caller never has
+   * to expose a scheme/port/method picker. Returns `null` for a host that
+   * doesn't parse as a domain, or when the user has no organization to
+   * create the target under.
+   */
+  async quickStartTarget(userId: string, hostInput: string): Promise<QuickStartResult | null> {
+    const host = normalizeHost(hostInput);
+    if (!host) return null;
+
+    const memberships = await this.membershipLookup.getMembershipsForUser(userId);
+    const organizationId = memberships[0]?.organizationId;
+    if (!organizationId) return null;
+
+    const detection = await detectProvider(host);
+
+    const target = await this.createTarget(userId, organizationId, {
+      scheme: QUICK_START_SCHEME,
+      host,
+      port: QUICK_START_PORT,
+      verificationMethod: "DNS_TXT",
+    });
+    if (!target) return null;
+
+    return { target, detection };
+  }
+
+  /**
+   * Runs the unpersisted "quick look" dynamic scan (see `runQuickScan`'s
+   * own doc comment for why this doesn't go through the persisted
+   * `Scan`/`Finding` pipeline) against a target the caller can see and
+   * that has actually been verified. `getTargetForUser` already
+   * tenant-checks (a cross-tenant caller gets `not_found`, same as a
+   * nonexistent target, never leaking existence); `not_ready` covers an
+   * existing, visible target that just isn't scannable yet (unverified,
+   * revoked, or expired) — kept distinct from `not_found` so the
+   * controller can return the right status code for each.
+   */
+  async runScanForUser(
+    userId: string,
+    targetId: string,
+  ): Promise<
+    { ok: true; result: QuickScanResult } | { ok: false; reason: "not_found" | "not_ready" }
+  > {
+    const target = await this.getTargetForUser(userId, targetId);
+    if (!target) return { ok: false, reason: "not_found" };
+    if (!target.verifiedAt || target.revokedAt || target.expiresAt.getTime() <= Date.now()) {
+      return { ok: false, reason: "not_ready" };
+    }
+
+    return { ok: true, result: await runQuickScan(target) };
   }
 
   /** Tenant-checked single lookup — returns `null` for both "doesn't exist" and "exists but you can't see it," never distinguishing the two (Section 35 IDOR pattern). */

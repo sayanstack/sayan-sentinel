@@ -4,11 +4,14 @@ import { useState } from "react";
 import {
   createTarget,
   revokeTarget,
+  scanTarget,
   verifyTarget,
   type CreateTargetInput,
   type Organization,
+  type QuickScanResult,
   type TargetAuthorizationSummary,
 } from "@/lib/api";
+import { DomainOnboarding } from "./domain-onboarding";
 
 function statusLabel(target: TargetAuthorizationSummary): { label: string; className: string } {
   if (target.revokedAt) return { label: "Revoked", className: "text-text-muted" };
@@ -27,11 +30,20 @@ export function TargetsView({
   organizations: Organization[];
 }) {
   const [targets, setTargets] = useState(initialTargets);
-  const [formOpen, setFormOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [scanResults, setScanResults] = useState<Record<string, QuickScanResult>>({});
+  const [scanErrors, setScanErrors] = useState<Record<string, string>>({});
+
+  function upsertTarget(target: TargetAuthorizationSummary) {
+    setTargets((prev) => {
+      const exists = prev.some((t) => t.id === target.id);
+      return exists ? prev.map((t) => (t.id === target.id ? target : t)) : [target, ...prev];
+    });
+  }
 
   async function handleCreate(formData: FormData) {
     setSubmitting(true);
@@ -52,8 +64,8 @@ export function TargetsView({
 
       const input: CreateTargetInput = { scheme, host, port, verificationMethod };
       const created = await createTarget(organizationId, input);
-      setTargets((prev) => [created, ...prev]);
-      setFormOpen(false);
+      upsertTarget(created);
+      setAdvancedOpen(false);
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Failed to create target.");
     } finally {
@@ -64,11 +76,23 @@ export function TargetsView({
   async function handleVerify(id: string) {
     setPendingActionId(id);
     setActionError(null);
+    setScanErrors((prev) => ({ ...prev, [id]: "" }));
     try {
       const result = await verifyTarget(id);
-      setTargets((prev) => prev.map((t) => (t.id === id ? result : t)));
+      upsertTarget(result);
       if (!result.verificationOutcome.verified) {
         setActionError(`Verification did not succeed: ${result.verificationOutcome.detail}`);
+        return;
+      }
+      try {
+        const scan = await scanTarget(id);
+        setScanResults((prev) => ({ ...prev, [id]: scan }));
+      } catch (scanErr) {
+        setScanErrors((prev) => ({
+          ...prev,
+          [id]:
+            scanErr instanceof Error ? scanErr.message : "Verified, but the scan failed to run.",
+        }));
       }
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to verify target.");
@@ -83,7 +107,7 @@ export function TargetsView({
     setActionError(null);
     try {
       const updated = await revokeTarget(id);
-      setTargets((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      upsertTarget(updated);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to revoke target.");
     } finally {
@@ -92,94 +116,101 @@ export function TargetsView({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">{targets.length} target(s)</p>
+    <div className="space-y-6">
+      <DomainOnboarding onCreated={upsertTarget} onVerified={upsertTarget} />
+
+      <div>
         <button
           type="button"
-          onClick={() => setFormOpen((open) => !open)}
-          className="rounded-md bg-accent-blue px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:outline-none"
+          onClick={() => setAdvancedOpen((open) => !open)}
+          className="text-sm text-text-muted hover:text-text"
         >
-          {formOpen ? "Cancel" : "New Target"}
+          {advancedOpen
+            ? "Hide advanced setup"
+            : "Advanced setup (custom port, HTTP, org picker) →"}
         </button>
+
+        {advancedOpen && (
+          <form
+            action={handleCreate}
+            className="mt-3 space-y-3 rounded-lg border border-border bg-surface p-4"
+          >
+            {formError && <p className="text-sm text-severity-high">{formError}</p>}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm text-text-muted">
+                Organization
+                <select
+                  name="organizationId"
+                  required
+                  defaultValue=""
+                  className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
+                >
+                  <option value="" disabled>
+                    Select…
+                  </option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm text-text-muted">
+                Scheme
+                <select
+                  name="scheme"
+                  defaultValue="https"
+                  className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
+                >
+                  <option value="https">https</option>
+                  <option value="http">http</option>
+                </select>
+              </label>
+              <label className="text-sm text-text-muted">
+                Host
+                <input
+                  name="host"
+                  required
+                  placeholder="app.example.com"
+                  className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
+                />
+              </label>
+              <label className="text-sm text-text-muted">
+                Port
+                <input
+                  name="port"
+                  type="number"
+                  defaultValue={443}
+                  required
+                  className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
+                />
+              </label>
+              <label className="text-sm text-text-muted sm:col-span-2">
+                Verification method
+                <select
+                  name="verificationMethod"
+                  defaultValue="DNS_TXT"
+                  className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
+                >
+                  <option value="DNS_TXT">DNS TXT record</option>
+                  <option value="HTTP_WELL_KNOWN">HTTP well-known path</option>
+                </select>
+              </label>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-md bg-accent-blue px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {submitting ? "Creating…" : "Create"}
+            </button>
+          </form>
+        )}
       </div>
 
-      {formOpen && (
-        <form
-          action={handleCreate}
-          className="space-y-3 rounded-lg border border-border bg-surface p-4"
-        >
-          {formError && <p className="text-sm text-severity-high">{formError}</p>}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm text-text-muted">
-              Organization
-              <select
-                name="organizationId"
-                required
-                defaultValue=""
-                className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
-              >
-                <option value="" disabled>
-                  Select…
-                </option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm text-text-muted">
-              Scheme
-              <select
-                name="scheme"
-                defaultValue="https"
-                className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
-              >
-                <option value="https">https</option>
-                <option value="http">http</option>
-              </select>
-            </label>
-            <label className="text-sm text-text-muted">
-              Host
-              <input
-                name="host"
-                required
-                placeholder="app.example.com"
-                className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
-              />
-            </label>
-            <label className="text-sm text-text-muted">
-              Port
-              <input
-                name="port"
-                type="number"
-                defaultValue={443}
-                required
-                className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
-              />
-            </label>
-            <label className="text-sm text-text-muted sm:col-span-2">
-              Verification method
-              <select
-                name="verificationMethod"
-                defaultValue="DNS_TXT"
-                className="mt-1 block w-full rounded-md border border-border bg-surface-raised px-2 py-1.5 text-text"
-              >
-                <option value="DNS_TXT">DNS TXT record</option>
-                <option value="HTTP_WELL_KNOWN">HTTP well-known path</option>
-              </select>
-            </label>
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-accent-blue px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {submitting ? "Creating…" : "Create"}
-          </button>
-        </form>
-      )}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text-muted">{targets.length} target(s)</p>
+      </div>
 
       {actionError && <p className="text-sm text-severity-high">{actionError}</p>}
 
@@ -187,8 +218,8 @@ export function TargetsView({
         <div className="rounded-lg border border-border bg-surface p-8 text-center">
           <p className="text-text">No web targets authorized yet.</p>
           <p className="mt-1 text-sm text-text-muted">
-            Create one and prove ownership via a DNS TXT record or an HTTP well-known challenge
-            before Sentinel will ever make a request to it.
+            Enter a domain above and prove ownership via a DNS TXT record before Sentinel will ever
+            make a request to it.
           </p>
         </div>
       ) : (
@@ -209,6 +240,8 @@ export function TargetsView({
                 const isBusy = pendingActionId === target.id;
                 const needsChallenge =
                   !target.verifiedAt && !target.revokedAt && target.verificationChallenge;
+                const scanResult = scanResults[target.id];
+                const scanError = scanErrors[target.id];
                 const rows = [];
 
                 rows.push(
@@ -280,6 +313,34 @@ export function TargetsView({
                             </code>
                           </>
                         )}
+                      </td>
+                    </tr>,
+                  );
+                }
+
+                if (scanError) {
+                  rows.push(
+                    <tr key={`${target.id}-scan-error`} className="border-t border-border">
+                      <td colSpan={5} className="px-4 py-3 text-xs text-severity-medium">
+                        Quick scan didn&apos;t complete: {scanError}
+                      </td>
+                    </tr>,
+                  );
+                }
+
+                if (scanResult) {
+                  rows.push(
+                    <tr key={`${target.id}-scan`} className="border-t border-border bg-surface/50">
+                      <td colSpan={5} className="px-4 py-3 text-xs text-text-muted">
+                        <p>
+                          Last quick scan: {scanResult.scannedUrl} — {scanResult.visitedCount}{" "}
+                          page(s),{" "}
+                          {scanResult.findings.length === 0
+                            ? "no issues found"
+                            : `${scanResult.findings.length} finding(s)`}
+                          {scanResult.fetchError ? ` — ${scanResult.fetchError}` : ""}. Unpersisted
+                          — not shown on the Findings dashboard.
+                        </p>
                       </td>
                     </tr>,
                   );

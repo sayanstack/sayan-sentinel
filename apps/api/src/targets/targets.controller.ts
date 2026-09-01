@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   Headers,
@@ -9,6 +11,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { CreateTargetDto } from "./dto/create-target.dto";
+import { QuickStartTargetDto } from "./dto/quick-start-target.dto";
 import { TargetsService } from "./targets.service";
 
 function requireUserId(userId: string | undefined): string {
@@ -49,6 +52,39 @@ export class TargetsController {
       throw new NotFoundException();
     }
     return target;
+  }
+
+  /**
+   * The one-field onboarding path — no `x-demo-organization-id` header
+   * required, since the whole point is that the caller hasn't picked an
+   * organization yet. See `TargetsService.quickStartTarget`.
+   */
+  @Post("quick-start")
+  async quickStart(
+    @Headers("x-demo-user-id") userIdHeader: string | undefined,
+    @Body() body: QuickStartTargetDto,
+  ) {
+    const userId = requireUserId(userIdHeader);
+    const result = await this.targetsService.quickStartTarget(userId, body.host);
+    if (!result) {
+      throw new BadRequestException(
+        "Couldn't create a target for that domain — check it's a valid hostname and that your account belongs to an organization.",
+      );
+    }
+    return result;
+  }
+
+  @Post(":id/scan")
+  async scan(@Headers("x-demo-user-id") userIdHeader: string | undefined, @Param("id") id: string) {
+    const userId = requireUserId(userIdHeader);
+    const outcome = await this.targetsService.runScanForUser(userId, id);
+    if (!outcome.ok && outcome.reason === "not_found") throw new NotFoundException();
+    if (!outcome.ok) {
+      throw new ConflictException(
+        "This target must be verified (and not revoked or expired) before it can be scanned.",
+      );
+    }
+    return outcome.result;
   }
 
   @Get()

@@ -16,11 +16,10 @@ export default async function TargetsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-text">Web Targets</h1>
-        <p className="mt-1 text-text-muted">
-          Authorized web targets for the Web Security Engine and dynamic validation. A URL appearing
-          anywhere in source, a README, or scanner output never authorizes Sentinel to scan it —
-          only a verified target here does.
+        <p className="text-sm font-medium tracking-wide text-text-muted uppercase">Web Targets</p>
+        <p className="mt-1 text-sm text-text-muted">
+          A URL appearing anywhere in source, a README, or scanner output never authorizes Sentinel
+          to scan it — only a verified target below does.
         </p>
       </header>
 

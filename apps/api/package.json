@@ -26,6 +26,7 @@
     "@sayan-sentinel/queue": "workspace:*",
     "@sayan-sentinel/security-core": "workspace:*",
     "@sayan-sentinel/shared": "workspace:*",
+    "@sayan-sentinel/web-security-engine": "workspace:*",
     "bullmq": "^6.3.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",

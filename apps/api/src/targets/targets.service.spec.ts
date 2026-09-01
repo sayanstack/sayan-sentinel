@@ -1,6 +1,8 @@
 import { prisma } from "@sayan-sentinel/database";
 import { generateVerificationChallenge, verifyTarget } from "@sayan-sentinel/security-core";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
+import { detectProvider } from "./detect-provider";
+import { runQuickScan } from "./run-quick-scan";
 import { TargetsService } from "./targets.service";
 
 jest.mock("@sayan-sentinel/database", () => ({
@@ -20,6 +22,9 @@ jest.mock("@sayan-sentinel/security-core", () => ({
   generateVerificationChallenge: jest.fn(),
   verifyTarget: jest.fn(),
 }));
+
+jest.mock("./detect-provider", () => ({ detectProvider: jest.fn() }));
+jest.mock("./run-quick-scan", () => ({ runQuickScan: jest.fn() }));
 
 const ACME_TARGET = {
   id: "target-1",
@@ -333,5 +338,138 @@ describe("TargetsService.listTargetsForUser", () => {
     expect(prisma.targetAuthorization.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { organizationId: { in: ["org-acme", "org-globex"] } } }),
     );
+  });
+});
+
+describe("TargetsService.quickStartTarget", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const DETECTION = {
+    host: "app.acme.example.com",
+    resolvable: true,
+    nameservers: ["ana.ns.cloudflare.com"],
+    nameserverProvider: "Cloudflare",
+    cname: null,
+    hostingProvider: null,
+    addresses: [],
+  };
+
+  it("normalizes the host, auto-picks the caller's organization, and defaults scheme/port/method", async () => {
+    (detectProvider as jest.Mock).mockResolvedValue(DETECTION);
+    (generateVerificationChallenge as jest.Mock).mockReturnValue("generated-challenge");
+    (prisma.targetAuthorization.create as jest.Mock).mockResolvedValue(ACME_TARGET);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const result = await service.quickStartTarget(
+      "user-alice",
+      "HTTPS://App.Acme.Example.Com/dashboard",
+    );
+
+    expect(result).toEqual({ target: ACME_TARGET, detection: DETECTION });
+    expect(detectProvider).toHaveBeenCalledWith("app.acme.example.com");
+    expect(prisma.targetAuthorization.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          host: "app.acme.example.com",
+          scheme: "https",
+          port: 443,
+          verificationMethod: "DNS_TXT",
+        }),
+      }),
+    );
+  });
+
+  it("returns null for input that doesn't normalize to a valid hostname", async () => {
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const result = await service.quickStartTarget("user-alice", "not a domain!!");
+
+    expect(result).toBeNull();
+    expect(detectProvider).not.toHaveBeenCalled();
+    expect(prisma.targetAuthorization.create).not.toHaveBeenCalled();
+  });
+
+  it("returns null when the caller belongs to no organization", async () => {
+    const membershipLookup = membershipLookupWith([]);
+    const service = new TargetsService(membershipLookup);
+
+    const result = await service.quickStartTarget("user-nobody", "example.com");
+
+    expect(result).toBeNull();
+    expect(prisma.targetAuthorization.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("TargetsService.runScanForUser", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const VERIFIED_TARGET = { ...ACME_TARGET, verifiedAt: new Date() };
+  const SCAN_RESULT = {
+    scannedUrl: "https://app.acme.example.com:443",
+    schemeUsed: "https" as const,
+    visitedCount: 3,
+    truncated: false,
+    findings: [],
+  };
+
+  it("runs the quick scan for a verified target the caller can access", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue(VERIFIED_TARGET);
+    (runQuickScan as jest.Mock).mockResolvedValue(SCAN_RESULT);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.runScanForUser("user-alice", "target-1");
+
+    expect(outcome).toEqual({ ok: true, result: SCAN_RESULT });
+    expect(runQuickScan).toHaveBeenCalledWith(VERIFIED_TARGET);
+  });
+
+  it("reports not_found for a target the caller can't access, without running a scan", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue(VERIFIED_TARGET);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-mallory", organizationId: "org-globex" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.runScanForUser("user-mallory", "target-1");
+
+    expect(outcome).toEqual({ ok: false, reason: "not_found" });
+    expect(runQuickScan).not.toHaveBeenCalled();
+  });
+
+  it("reports not_ready for a target that hasn't been verified yet", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue(ACME_TARGET);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.runScanForUser("user-alice", "target-1");
+
+    expect(outcome).toEqual({ ok: false, reason: "not_ready" });
+    expect(runQuickScan).not.toHaveBeenCalled();
+  });
+
+  it("reports not_ready for a verified target that has since been revoked", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue({
+      ...VERIFIED_TARGET,
+      revokedAt: new Date(),
+    });
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.runScanForUser("user-alice", "target-1");
+
+    expect(outcome).toEqual({ ok: false, reason: "not_ready" });
   });
 });
