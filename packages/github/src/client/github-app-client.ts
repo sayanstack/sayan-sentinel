@@ -41,12 +41,13 @@ export interface CreatePullRequestParams {
 }
 
 /**
- * Thin wrapper around `@octokit/app`. This is real, correct SDK usage
- * (constructor shape and `getInstallationOctokit` verified against the
- * library's own documentation) but has NOT been exercised against a live
- * GitHub App — no GitHub App credentials are configured in this
- * environment. Stated plainly rather than implied otherwise; see
- * docs/github-app.md.
+ * Thin wrapper around `@octokit/app`. Exercised against a real, installed
+ * GitHub App on a real Railway deployment (see docs/github-app.md) — that
+ * live run is what caught `createInstallationAccessToken`'s missing
+ * `{ type: "installation" }` argument (see its own doc comment) and an
+ * earlier private-key-parsing bug in `resolvePrivateKey`, neither of
+ * which any unit test here could have caught since nothing here talks to
+ * real Octokit internals.
  */
 export class GitHubAppClient {
   private readonly app: App<{ Octokit: typeof OctokitRest }>;
@@ -139,7 +140,14 @@ export class GitHubAppClient {
    */
   async createInstallationAccessToken(installationId: number): Promise<string> {
     const octokit = await this.getInstallationOctokit(installationId);
-    const auth = (await octokit.auth()) as { token: string };
+    // Confirmed against a real deployment: calling `.auth()` with no
+    // arguments throws `TypeError: Cannot read properties of undefined
+    // (reading 'type')` deep inside @octokit/auth-app, which requires an
+    // explicit `{ type: "installation" }` to know which token to mint —
+    // it doesn't infer that from the octokit instance already being
+    // installation-scoped the way the other `octokit.rest.*` calls in
+    // this file do.
+    const auth = (await octokit.auth({ type: "installation" })) as { token: string };
     return auth.token;
   }
 
