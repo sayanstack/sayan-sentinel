@@ -12,6 +12,7 @@ jest.mock("@sayan-sentinel/database", () => ({
       update: jest.fn(),
     },
     auditEvent: { create: jest.fn() },
+    user: { findUnique: jest.fn() },
   },
 }));
 
@@ -82,6 +83,59 @@ describe("TargetsService.createTarget", () => {
     const service = new TargetsService(membershipLookup);
 
     const result = await service.createTarget("user-mallory", "org-acme", {
+      scheme: "https",
+      host: "app.acme.example.com",
+      port: 443,
+      verificationMethod: "DNS_TXT",
+    });
+
+    expect(result).toBeNull();
+    expect(prisma.targetAuthorization.create).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Regression coverage for a real bug found deploying this app for real:
+   * the demo-auth header is email-shaped (`demo@sayansentinel.local`), but
+   * `TargetAuthorization.authorizedByUserId` is a foreign key into
+   * `User.id` — writing the raw email straight into that column threw
+   * `Foreign key constraint violated on the constraint:
+   * TargetAuthorization_authorizedByUserId_fkey` in production.
+   */
+  it("resolves an email-shaped userId to the real User.id for authorizedByUserId", async () => {
+    (generateVerificationChallenge as jest.Mock).mockReturnValue("generated-challenge");
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: "cuid-real-user-id" });
+    (prisma.targetAuthorization.create as jest.Mock).mockResolvedValue({
+      ...ACME_TARGET,
+      authorizedByUserId: "cuid-real-user-id",
+    });
+    const membershipLookup = membershipLookupWith([
+      { userId: "demo@sayansentinel.local", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const result = await service.createTarget("demo@sayansentinel.local", "org-acme", {
+      scheme: "https",
+      host: "app.acme.example.com",
+      port: 443,
+      verificationMethod: "DNS_TXT",
+    });
+
+    expect(result).not.toBeNull();
+    expect(prisma.targetAuthorization.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ authorizedByUserId: "cuid-real-user-id" }),
+      }),
+    );
+  });
+
+  it("refuses to create a target when the email-shaped userId can't be resolved to a User row", async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    const membershipLookup = membershipLookupWith([
+      { userId: "ghost@example.com", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const result = await service.createTarget("ghost@example.com", "org-acme", {
       scheme: "https",
       host: "app.acme.example.com",
       port: 443,

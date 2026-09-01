@@ -8,7 +8,7 @@
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![node](https://img.shields.io/badge/node-%3E%3D20.11-339933)
 
-Built by [Sayan Stack](https://github.com/).
+Built by [Sayan Stack](https://sayanstack.com).
 
 ---
 

@@ -9,6 +9,7 @@ import {
   type VerificationTarget,
 } from "@sayan-sentinel/security-core";
 import { writeAuditEvent } from "../audit/write-audit-event";
+import { resolveDemoUserId } from "../common/resolve-demo-user-id";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
 import type { CreateTargetDto } from "./dto/create-target.dto";
 
@@ -47,6 +48,13 @@ export class TargetsService {
       return null;
     }
 
+    // TargetAuthorization.authorizedByUserId is a foreign key into User.id
+    // — see resolveDemoUserId's doc comment. Membership access was already
+    // proven above using the original (possibly email-shaped) userId; this
+    // resolves the real id specifically for the FK this create() needs.
+    const resolvedUserId = await resolveDemoUserId(userId);
+    if (!resolvedUserId) return null;
+
     const challenge = generateVerificationChallenge();
     const expiresAt = new Date(
       Date.now() + (input.expiresInDays ?? DEFAULT_EXPIRES_IN_DAYS) * MS_PER_DAY,
@@ -62,7 +70,7 @@ export class TargetsService {
         allowedPathPrefixes: input.allowedPathPrefixes ?? [],
         verificationMethod: input.verificationMethod,
         verificationChallenge: challenge,
-        authorizedByUserId: userId,
+        authorizedByUserId: resolvedUserId,
         expiresAt,
         maxTier: input.maxTier ?? DEFAULT_MAX_TIER,
       },
