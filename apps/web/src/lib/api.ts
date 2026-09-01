@@ -142,3 +142,49 @@ export function verifyTarget(id: string): Promise<VerifyTargetResult> {
 export function revokeTarget(id: string): Promise<TargetAuthorizationSummary> {
   return apiFetch<TargetAuthorizationSummary>(`/targets/${id}/revoke`, { method: "POST" });
 }
+
+export type ScanTrigger = "MANUAL" | "PUSH" | "PULL_REQUEST" | "SCHEDULED";
+export type ScanStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+
+export interface ScanSummary {
+  id: string;
+  repositoryId: string;
+  commitSha: string;
+  trigger: ScanTrigger;
+  status: ScanStatus;
+  pullRequestNumber: number | null;
+  durationMs: number | null;
+  securityScore: number | null;
+  createdAt: string;
+  repository: { id: string; owner: string; name: string };
+}
+
+export function listScans(): Promise<ScanSummary[]> {
+  return apiFetch<ScanSummary[]>("/scans");
+}
+
+export type FindingSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+export type FindingStatus =
+  | "OPEN"
+  | "CONFIRMED"
+  | "LIKELY"
+  | "NEEDS_REVIEW"
+  | "FALSE_POSITIVE"
+  | "RESOLVED"
+  | "ACCEPTED_RISK";
+
+export interface FindingSummary {
+  id: string;
+  category: string;
+  title: string;
+  severity: FindingSeverity;
+  status: FindingStatus;
+  filePath: string | null;
+  lineStart: number | null;
+  updatedAt: string;
+  repository: { id: string; owner: string; name: string };
+}
+
+export function listFindings(): Promise<FindingSummary[]> {
+  return apiFetch<FindingSummary[]>("/findings");
+}

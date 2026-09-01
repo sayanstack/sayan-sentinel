@@ -3,10 +3,12 @@ import { Module } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
 import { SentinelConfigModule } from "./config/sentinel-config.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
+import { FindingsModule } from "./findings/findings.module";
 import { GithubWebhookModule } from "./github/github-webhook.module";
 import { HealthModule } from "./health/health.module";
 import { OrganizationsModule } from "./organizations/organizations.module";
 import { RepositoriesModule } from "./repositories/repositories.module";
+import { ScansModule } from "./scans/scans.module";
 import { TargetsModule } from "./targets/targets.module";
 
 @Module({
@@ -45,6 +47,8 @@ import { TargetsModule } from "./targets/targets.module";
     TargetsModule,
     DashboardModule,
     GithubWebhookModule,
+    ScansModule,
+    FindingsModule,
   ],
 })
 export class AppModule {}

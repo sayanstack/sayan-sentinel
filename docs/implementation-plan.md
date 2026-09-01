@@ -41,6 +41,37 @@ Status legend: `not started` · `in progress` · `done`
 | 30    | Hosted-mode config interlocks (SENTINEL_HOSTED_MODE)                                        | done — see notes below                                                   |
 | 31    | GitHub Check Run reporting wired into the scan worker                                       | done — see notes below                                                   |
 | 32    | GitHub webhook receiver + scan queue producer                                               | done — see notes below                                                   |
+| 33    | Dashboard: real Scans & Findings pages                                                      | done — see notes below                                                   |
+
+## Phase 33 — Dashboard: real Scans & Findings pages
+
+Full writeup in [docs/dashboard-scans-findings.md](dashboard-scans-findings.md).
+Two of the remaining `NotImplementedPage` placeholders from the frontend
+phase now render real, tenant-scoped data: `GET /scans`/`GET /scans/:id`
+and `GET /findings` (`apps/api/src/scans/`, `apps/api/src/findings/`),
+consumed by real server components at `/scans` and `/findings`
+(`apps/web/src/app/`), following the exact pattern already established by
+the real `/repositories` page.
+
+**A real bug was caught and avoided before shipping**: Prisma's `orderBy`
+on the `Severity` enum sorts alphabetically (`CRITICAL, HIGH, INFO, LOW,
+MEDIUM`), not by actual priority — `INFO` would have sorted third instead
+of last. Fixed by ordering the query by `updatedAt` and re-sorting the
+capped result set in application code against an explicit
+`SEVERITY_RANK` table, with a dedicated test pinning the correct order
+down.
+
+Verified in-browser against the same fake-env compiled `apps/api` used in
+Phase 32: both pages render their real `ErrorBanner` with the API log
+confirming the failure is exactly the expected
+`PrismaClientInitializationError` (no live Postgres in this sandbox), not
+a bug in the new routes — no React/hydration console errors introduced.
+
+**Explicitly deferred**: no pagination (hard-capped at 100 scans/200
+findings), no triage UI (finding status can't be changed from the
+dashboard yet), and — like every other data-backed feature this
+session — not verified against a real populated database, since this
+sandbox has neither Postgres nor Redis.
 
 ## Phase 32 — GitHub webhook receiver + scan queue producer
 
