@@ -44,7 +44,7 @@ but not strictly enforced pre-1.0.
 
 ## Security-sensitive changes
 
-Changes touching `packages/hexstrike-adapter`, Scope Guard, authentication,
+Changes touching `packages/security-core`, Scope Guard, authentication,
 authorization, webhook verification, or secret handling require an explicit
 call-out in the PR description of what was changed and why, plus the relevant
 test coverage. See [docs/threat-model.md](docs/threat-model.md).

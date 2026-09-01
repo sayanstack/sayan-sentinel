@@ -3,7 +3,7 @@ import { envSchema, type Env } from "./schema";
 export interface FeatureFlags {
   aiEnabled: boolean;
   githubAppEnabled: boolean;
-  hexstrikeEnabled: boolean;
+  dynamicValidationEnabled: boolean;
   hostedMode: boolean;
 }
 
@@ -32,9 +32,15 @@ function deriveFeatureFlags(env: Env): FeatureFlags {
     env.GITHUB_WEBHOOK_SECRET
   );
 
-  const hexstrikeEnabled = env.HEXSTRIKE_ENABLED && !!env.HEXSTRIKE_BASE_URL;
+  const dynamicValidationEnabled =
+    env.DYNAMIC_VALIDATION_ENABLED && !!env.DYNAMIC_VALIDATION_BASE_URL;
 
-  return { aiEnabled, githubAppEnabled, hexstrikeEnabled, hostedMode: env.SENTINEL_HOSTED_MODE };
+  return {
+    aiEnabled,
+    githubAppEnabled,
+    dynamicValidationEnabled,
+    hostedMode: env.SENTINEL_HOSTED_MODE,
+  };
 }
 
 /**

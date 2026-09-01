@@ -7,7 +7,7 @@ const boolFromString = z
 
 /**
  * Mirrors .env.example. Every field that gates an optional feature
- * (AI, GitHub App, HexStrike) is optional here by design — the loader
+ * (AI, GitHub App, dynamic validation) is optional here by design — the loader
  * derives feature-availability flags instead of failing validation, so
  * Sentinel can run with deterministic analysis only.
  */
@@ -45,9 +45,9 @@ const baseEnvSchema = z.object({
   AI_MONTHLY_BUDGET_USD: z.coerce.number().nonnegative().default(0),
   AI_PER_SCAN_BUDGET_USD: z.coerce.number().nonnegative().default(0),
 
-  HEXSTRIKE_ENABLED: boolFromString,
-  HEXSTRIKE_BASE_URL: z.string().optional(),
-  HEXSTRIKE_API_KEY: z.string().optional(),
+  DYNAMIC_VALIDATION_ENABLED: boolFromString,
+  DYNAMIC_VALIDATION_BASE_URL: z.string().optional(),
+  DYNAMIC_VALIDATION_API_KEY: z.string().optional(),
 
   LOCAL_LAB_MODE: boolFromString,
   /**

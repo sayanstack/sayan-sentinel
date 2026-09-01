@@ -12,7 +12,7 @@ describe("loadConfig", () => {
     expect(config.env.NODE_ENV).toBe("development");
     expect(config.features.aiEnabled).toBe(false);
     expect(config.features.githubAppEnabled).toBe(false);
-    expect(config.features.hexstrikeEnabled).toBe(false);
+    expect(config.features.dynamicValidationEnabled).toBe(false);
   });
 
   it("throws ConfigValidationError when a required var is missing", () => {
@@ -44,16 +44,16 @@ describe("loadConfig", () => {
     expect(complete.features.githubAppEnabled).toBe(true);
   });
 
-  it("enables HexStrike only when explicitly enabled AND a base URL is set", () => {
-    const flagOnly = loadConfig({ ...baseEnv, HEXSTRIKE_ENABLED: "true" });
-    expect(flagOnly.features.hexstrikeEnabled).toBe(false);
+  it("enables dynamic validation only when explicitly enabled AND a base URL is set", () => {
+    const flagOnly = loadConfig({ ...baseEnv, DYNAMIC_VALIDATION_ENABLED: "true" });
+    expect(flagOnly.features.dynamicValidationEnabled).toBe(false);
 
     const complete = loadConfig({
       ...baseEnv,
-      HEXSTRIKE_ENABLED: "true",
-      HEXSTRIKE_BASE_URL: "http://localhost:8888",
+      DYNAMIC_VALIDATION_ENABLED: "true",
+      DYNAMIC_VALIDATION_BASE_URL: "http://localhost:8888",
     });
-    expect(complete.features.hexstrikeEnabled).toBe(true);
+    expect(complete.features.dynamicValidationEnabled).toBe(true);
   });
 
   it("defaults LOCAL_LAB_MODE to false when unset", () => {

@@ -18,8 +18,8 @@ flowchart TD
     FIND --> POL[Policy Engine]
     FIND --> AUTH[Authorized Validation]
     AUTH --> SG[Scope Guard]
-    SG --> HX[HexStrike]
-    HX --> EV[Evidence]
+    SG --> DV[Dynamic Validation]
+    DV --> EV[Evidence]
     EV --> REM[Remediation]
     REM --> APPROVE[Human Approval]
     APPROVE --> PR[GitHub PR]
@@ -61,9 +61,9 @@ packages/
   findings/            canonical Finding model, fingerprinting,
                        correlation engine, Sentinel Security Score.
   policy-engine/       Section 28's example repository policies.
-  hexstrike-adapter/   Scope Guard (SSRF/DNS-rebinding/authorization
-                       boundary) + HexStrike REST client, built against
-                       the real HexStrike API surface.
+  security-core/       Scope Guard (SSRF/DNS-rebinding/authorization
+                       boundary) + a remote dynamic-validation REST
+                       client, built against a real, verified API surface.
   ui/, config (frontend)/  not yet built.
 
 examples/
@@ -92,9 +92,9 @@ examples/
    through `packages/ai-engine`'s `completeStructured()` — every piece of
    repository-derived context is wrapped as untrusted and redacted for
    secrets first.
-7. Dynamic validation (`packages/hexstrike-adapter`) is a separate,
+7. Dynamic validation (`packages/security-core`) is a separate,
    on-demand path, not part of the automatic scan: every `validate()` call
-   runs Scope Guard first, unconditionally, before any HexStrike call.
+   runs Scope Guard first, unconditionally, before any backend call.
 
 ## Not yet built
 

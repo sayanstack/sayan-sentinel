@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { analyzeCors } from "./cors";
 import { SafeHttpClient } from "../http/SafeHttpClient";
 import type { FetchResponseLike } from "../http/types";
-import type { TargetAuthorizationRecord } from "@sayan-sentinel/hexstrike-adapter";
+import type { TargetAuthorizationRecord } from "@sayan-sentinel/security-core";
 
 const FUTURE = new Date("2026-12-31T00:00:00Z");
 const NOW = new Date("2026-08-31T00:00:00Z");

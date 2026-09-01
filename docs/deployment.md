@@ -25,12 +25,12 @@ either.
 - **S3-compatible object storage** — for scan artifacts (MinIO locally;
   any S3-compatible provider in production).
 - A **GitHub App** registration — see [github-app.md](github-app.md).
-- Optionally: an AI provider API key, and a reachable HexStrike server.
+- Optionally: an AI provider API key, and a reachable dynamic-validation server.
 
 ## Environment variables
 
 See `.env.example` for the complete list with inline documentation. Every
-optional integration (AI, GitHub App, HexStrike) degrades to a clean "not
+optional integration (AI, GitHub App, dynamic validation) degrades to a clean "not
 configured" state rather than crashing when its variables are absent —
 verify this is still true after any change to `packages/config`'s
 `loadConfig()` before deploying.
@@ -68,7 +68,7 @@ revisit once real workloads are measured, not a hard architectural limit.
 - [ ] A real GitHub App installation round-trips a webhook through
       `verifyWebhookSignature`
 - [ ] A real AI provider key produces a valid `completeStructured` result
-- [ ] A reachable HexStrike server passes `healthCheck()`
+- [ ] A reachable dynamic-validation server passes `healthCheck()`
 
 None of these have been checked off in this environment — this is the
 honest list of what remains before a real deployment, not a claim that

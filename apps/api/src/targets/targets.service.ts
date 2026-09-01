@@ -7,7 +7,7 @@ import {
   type VerificationMethod as PrimitiveVerificationMethod,
   type VerificationResult,
   type VerificationTarget,
-} from "@sayan-sentinel/hexstrike-adapter";
+} from "@sayan-sentinel/security-core";
 import { writeAuditEvent } from "../audit/write-audit-event";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
 import type { CreateTargetDto } from "./dto/create-target.dto";
@@ -27,7 +27,7 @@ export interface TargetWithVerificationOutcome extends TargetAuthorization {
 /**
  * The service layer bridging real, persisted `TargetAuthorization` rows to
  * the deterministic verification primitives in `@sayan-sentinel/
- * hexstrike-adapter`'s `target-verification` module (DNS TXT / HTTP
+ * security-core`'s `target-verification` module (DNS TXT / HTTP
  * well-known challenges) and, once verified, to Scope Guard itself (via
  * `toScopeGuardRecord`) — this is what makes those two previously
  * DB-independent pieces usable end to end rather than only unit-tested

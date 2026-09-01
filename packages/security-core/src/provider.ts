@@ -1,9 +1,9 @@
 import {
-  HexStrikeHttpClient,
-  type HexStrikeClientOptions,
-  type HexStrikeToolResult,
-  type IHexStrikeClient,
-} from "./client/hexstrike-http-client";
+  DynamicValidationHttpClient,
+  type DynamicValidationHttpClientOptions,
+  type DynamicValidationToolResult,
+  type IDynamicValidationClient,
+} from "./client/dynamic-validation-http-client";
 import type { DnsResolver } from "./scope-guard/resolve-and-check";
 import { evaluateScopeGuard } from "./scope-guard/scope-guard";
 import type { SafetyTier, ScopeDecision, TargetAuthorizationRecord } from "./scope-guard/types";
@@ -37,7 +37,7 @@ export interface ValidationResult {
   status: ValidationOutcomeStatus;
   reason: string;
   scopeDecision?: ScopeDecision;
-  raw?: HexStrikeToolResult;
+  raw?: DynamicValidationToolResult;
 }
 
 /**
@@ -70,20 +70,26 @@ export interface DynamicValidationProvider {
   cancel(jobId: string): Promise<void>;
 }
 
-export class HexStrikeDynamicValidationProvider implements DynamicValidationProvider {
+/**
+ * Talks to an external, configurable dynamic-validation backend (any
+ * server implementing the REST shape `DynamicValidationHttpClient`
+ * expects) — the specific backend is a deployment-time choice, not a
+ * hard-coded brand dependency.
+ */
+export class RemoteDynamicValidationProvider implements DynamicValidationProvider {
   private readonly activePids = new Map<string, number>();
 
   /** Accepts a client instance directly (test doubles inject a fake one); see `fromOptions` for the common case. */
-  constructor(private readonly client: IHexStrikeClient) {}
+  constructor(private readonly client: IDynamicValidationClient) {}
 
-  static fromOptions(options: HexStrikeClientOptions): HexStrikeDynamicValidationProvider {
-    return new HexStrikeDynamicValidationProvider(new HexStrikeHttpClient(options));
+  static fromOptions(options: DynamicValidationHttpClientOptions): RemoteDynamicValidationProvider {
+    return new RemoteDynamicValidationProvider(new DynamicValidationHttpClient(options));
   }
 
   async healthCheck(): Promise<ProviderHealth> {
     const result = await this.client.health();
     if (!result.success) {
-      return { available: false, reason: result.error ?? "HexStrike health check failed" };
+      return { available: false, reason: result.error ?? "Dynamic validation health check failed" };
     }
     return { available: true };
   }
@@ -93,11 +99,12 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
   }
 
   /**
-   * Scope Guard runs unconditionally, before any HexStrike call and
-   * before the capability/tier check even completes — this is the actual
-   * enforcement point that makes "HexStrike cannot bypass Scope Guard"
-   * true in code, not just a claim in a document. Nothing about the
-   * request (including anything AI-derived upstream) can skip this call.
+   * Scope Guard runs unconditionally, before any backend call and before
+   * the capability/tier check even completes — this is the actual
+   * enforcement point that makes "the dynamic validation backend cannot
+   * bypass Scope Guard" true in code, not just a claim in a document.
+   * Nothing about the request (including anything AI-derived upstream)
+   * can skip this call.
    */
   async validate(request: ValidationRequest): Promise<ValidationResult> {
     const scopeDecision = await evaluateScopeGuard({
@@ -133,7 +140,7 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
     if (!raw.success) {
       return {
         status: "failed",
-        reason: raw.error ?? "HexStrike tool call failed",
+        reason: raw.error ?? "Dynamic validation tool call failed",
         scopeDecision,
         raw,
       };
@@ -142,7 +149,7 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
     return {
       status: "inconclusive",
       reason:
-        "HexStrike call completed successfully; interpreting the result into a confirmed/rejected verdict is the evidence engine's job, not this adapter's.",
+        "Dynamic validation call completed successfully; interpreting the result into a confirmed/rejected verdict is the evidence engine's job, not this adapter's.",
       scopeDecision,
       raw,
     };
@@ -155,7 +162,7 @@ export class HexStrikeDynamicValidationProvider implements DynamicValidationProv
     this.activePids.delete(jobId);
   }
 
-  private runCapability(capabilityId: string, url: string): Promise<HexStrikeToolResult> {
+  private runCapability(capabilityId: string, url: string): Promise<DynamicValidationToolResult> {
     switch (capabilityId) {
       case "http_probe":
         return this.client.runTool("httpx", {

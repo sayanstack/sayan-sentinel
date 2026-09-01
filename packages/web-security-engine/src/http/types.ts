@@ -1,5 +1,5 @@
-import type { SafetyTier, TargetAuthorizationRecord } from "@sayan-sentinel/hexstrike-adapter";
-import type { DnsResolver } from "@sayan-sentinel/hexstrike-adapter";
+import type { SafetyTier, TargetAuthorizationRecord } from "@sayan-sentinel/security-core";
+import type { DnsResolver } from "@sayan-sentinel/security-core";
 
 export interface SafeHttpResponse {
   /** The final URL after following any redirects. */

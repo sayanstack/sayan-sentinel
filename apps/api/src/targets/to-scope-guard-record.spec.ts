@@ -1,5 +1,5 @@
 import type { TargetAuthorization } from "@sayan-sentinel/database";
-import { evaluateScopeGuard } from "@sayan-sentinel/hexstrike-adapter";
+import { evaluateScopeGuard } from "@sayan-sentinel/security-core";
 import { toScopeGuardRecord } from "./to-scope-guard-record";
 
 jest.mock("@sayan-sentinel/database", () => ({}));

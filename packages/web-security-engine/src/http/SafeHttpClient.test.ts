@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SafeHttpClient } from "./SafeHttpClient";
 import type { FetchResponseLike, SafeHttpClientOptions } from "./types";
-import type { TargetAuthorizationRecord } from "@sayan-sentinel/hexstrike-adapter";
+import type { TargetAuthorizationRecord } from "@sayan-sentinel/security-core";
 
 const NOW = new Date("2026-08-31T00:00:00Z");
 const FUTURE = new Date("2026-12-31T00:00:00Z");

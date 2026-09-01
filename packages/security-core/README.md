@@ -1,6 +1,7 @@
-# @sayan-sentinel/hexstrike-adapter
+# @sayan-sentinel/security-core
 
-Scope Guard (the deterministic authorization/SSRF boundary for dynamic validation) and the HexStrike AI dynamic-validation provider.
+Scope Guard (the deterministic authorization/SSRF boundary for dynamic
+validation) and the remote dynamic-validation provider.
 
 **Status:** both implemented against verified real interfaces. See [../../docs/implementation-plan.md](../../docs/implementation-plan.md) for full detail.
 
@@ -22,18 +23,20 @@ gate every dynamic-validation request:
   an allowed path prefix.
 - Fails closed on every ambiguous case.
 
-## HexStrike adapter (`src/client/`, `src/provider.ts`)
+## Dynamic validation client (`src/client/`, `src/provider.ts`)
 
-Built against HexStrike's real REST API (`GET /health`, `GET
+Built against a real REST API shape (`GET /health`, `GET
 /api/telemetry`, `POST /api/tools/<name>`, `GET
-/api/processes/status/<pid>`), verified by inspecting the actual
-connection-refused error text from the `hexstrike-ai` MCP tools in this
-environment rather than guessing.
+/api/processes/status/<pid>`) for a configurable external
+dynamic-validation backend, verified by inspecting real connection
+-refused error text against a local instance in this environment rather
+than guessing.
 
-`HexStrikeDynamicValidationProvider.validate()` calls Scope Guard
-unconditionally, before anything else — HexStrike cannot be reached from
-this adapter without passing that check first, which is what makes "scope
-guard cannot be bypassed" a property of the code, not just a policy.
+`RemoteDynamicValidationProvider.validate()` calls Scope Guard
+unconditionally, before anything else — the backend cannot be reached
+from this adapter without passing that check first, which is what makes
+"scope guard cannot be bypassed" a property of the code, not just a
+policy.
 
 Only two capabilities are offered: `http_probe` (Tier 0, httpx) and
 `vulnerability_scan` (Tier 1, Nuclei). Tier 2/3 are not implemented.
@@ -41,7 +44,7 @@ Only two capabilities are offered: `http_probe` (Tier 0, httpx) and
 ## Testing
 
 ```bash
-pnpm --filter @sayan-sentinel/hexstrike-adapter test
+pnpm --filter @sayan-sentinel/security-core test
 ```
 
 The HTTP client is tested against a real local HTTP server spun up in the

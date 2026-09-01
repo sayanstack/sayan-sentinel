@@ -6,18 +6,18 @@ invoked as separate subprocesses (never linked into or vendored inside
 Sentinel's own codebase), which is what keeps their licenses from
 affecting Sentinel's own.
 
-| Tool                                                 | License                               | How it's invoked                                                                          |
-| ---------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [Semgrep](https://github.com/semgrep/semgrep)        | LGPL 2.1 (CLI, as of recent releases) | Subprocess (`execFile`), JSON output parsed. Never imported as a library, never vendored. |
-| [Gitleaks](https://github.com/gitleaks/gitleaks)     | MIT                                   | Subprocess, JSON report file parsed.                                                      |
-| [OSV-Scanner](https://github.com/google/osv-scanner) | Apache-2.0                            | Subprocess, JSON output parsed.                                                           |
-| [HexStrike AI](https://github.com/)                  | See its own repository                | Accessed over HTTP as a separate server process — never linked or vendored.               |
+| Tool                                                              | License                                                                                                        | How it's invoked                                                                          |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Semgrep](https://github.com/semgrep/semgrep)                     | LGPL 2.1 (CLI, as of recent releases)                                                                          | Subprocess (`execFile`), JSON output parsed. Never imported as a library, never vendored. |
+| [Gitleaks](https://github.com/gitleaks/gitleaks)                  | MIT                                                                                                            | Subprocess, JSON report file parsed.                                                      |
+| [OSV-Scanner](https://github.com/google/osv-scanner)              | Apache-2.0                                                                                                     | Subprocess, JSON output parsed.                                                           |
+| Configured dynamic-validation backend (operator-chosen, optional) | Whatever license the operator's chosen backend carries — not declared here since it's a deployment-time choice | Accessed over HTTP as a separate server process — never linked or vendored.               |
 
 ## Why subprocess invocation matters here
 
 Each of these tools is installed and run as an independent executable;
 Sentinel's adapters (`packages/security-engine`,
-`packages/hexstrike-adapter`) only parse their output. This is the same
+`packages/security-core`) only parse their output. This is the same
 boundary Docker-based CI systems use, and it means:
 
 - Sentinel's own MIT license is unaffected by any of the above — none of

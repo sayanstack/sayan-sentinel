@@ -1,5 +1,5 @@
 import { prisma } from "@sayan-sentinel/database";
-import { generateVerificationChallenge, verifyTarget } from "@sayan-sentinel/hexstrike-adapter";
+import { generateVerificationChallenge, verifyTarget } from "@sayan-sentinel/security-core";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
 import { TargetsService } from "./targets.service";
 
@@ -15,7 +15,7 @@ jest.mock("@sayan-sentinel/database", () => ({
   },
 }));
 
-jest.mock("@sayan-sentinel/hexstrike-adapter", () => ({
+jest.mock("@sayan-sentinel/security-core", () => ({
   generateVerificationChallenge: jest.fn(),
   verifyTarget: jest.fn(),
 }));

@@ -31,7 +31,8 @@ Out of scope:
 - The bundled `examples/vulnerable-demo-app` fixture — its vulnerabilities are
   intentional and documented. Do not report them.
 - Third-party tools Sentinel shells out to (Semgrep, Gitleaks, OSV-Scanner,
-  HexStrike AI) — report those upstream.
+  and any configured external dynamic-validation backend) — report those
+  upstream to their own maintainers.
 
 ## Supported versions
 

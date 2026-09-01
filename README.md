@@ -18,8 +18,8 @@ Sayan Sentinel connects to an authorized GitHub repository, builds an
 internal code graph, runs deterministic security analysis (SAST, secret
 detection, dependency scanning), correlates the results with AI-assisted
 reasoning, and — only against explicitly authorized targets, behind a
-deterministic Scope Guard — offers optional dynamic validation via
-[HexStrike AI](https://github.com/) before generating a human-reviewed
+deterministic Scope Guard — offers optional dynamic validation via a
+configurable external backend before generating a human-reviewed
 remediation PR.
 
 This is **not** a vulnerability scanner you point at arbitrary internet
@@ -65,13 +65,13 @@ This repository is being built in public, phase by phase, tracked in
   credentials are configured in this environment, so this hasn't been
   exercised against a live model — that's stated plainly, not glossed
   over.
-- ✅ `packages/hexstrike-adapter` — Scope Guard (the deterministic SSRF/
+- ✅ `packages/security-core` — Scope Guard (the deterministic SSRF/
   DNS-rebinding/authorization boundary that sits outside the AI and gates
-  every dynamic validation request) and the HexStrike AI integration
-  itself, built against the real HexStrike REST API surface (verified by
-  inspecting actual error output from the connected `hexstrike-ai` MCP
-  server, not guessed). Only Tier 0/1 capabilities are offered; Tier 2 is
-  gated and Tier 3 destructive automation is never implemented.
+  every dynamic validation request) and a remote dynamic-validation
+  provider, built against a real, verified REST API surface (verified by
+  inspecting actual error output from a connected backend server, not
+  guessed). Only Tier 0/1 capabilities are offered; Tier 2 is gated and
+  Tier 3 destructive automation is never implemented.
 - ✅ `packages/github` — webhook signature verification, idempotent
   delivery handling, fast PR-diff sensitivity triage, a minimum-necessary
   permissions manifest (with a test that fails loudly on scope creep), and
@@ -312,15 +312,16 @@ flowchart TD
     CORR --> FIND[Findings]
     FIND --> AUTH[Authorized Validation]
     AUTH --> SG[Scope Guard]
-    SG --> HX[HexStrike]
-    HX --> EV[Evidence Engine]
+    SG --> DV[Dynamic Validation]
+    DV --> EV[Evidence Engine]
     EV --> REM[Remediation]
     REM --> APPROVE[Human Approval]
     APPROVE --> PR[GitHub PR]
 ```
 
-Full diagrams (scan pipeline, correlation, HexStrike authorization flow,
-GitHub event flow) live in [docs/architecture.md](docs/architecture.md).
+Full diagrams (scan pipeline, correlation, dynamic-validation
+authorization flow, GitHub event flow) live in
+[docs/architecture.md](docs/architecture.md).
 
 ## Monorepo layout
 
@@ -339,7 +340,7 @@ packages/
   ai-engine/           provider-agnostic AI reasoning layer
   findings/            canonical Finding model + correlation
   policy-engine/       repository policy evaluation
-  hexstrike-adapter/   dynamic validation provider (Scope Guard-gated) + target verification
+  security-core/       Scope Guard + remote dynamic validation provider + target verification
   rules-engine/        Sentinel Rules Engine — AST/call-graph/taint-based SAST, no AI required
   web-security-engine/ SafeHttpClient + passive web security rules (CORS, cookies, headers)
   source-runtime-correlation/ route normalization + source<->runtime path matching
@@ -377,7 +378,7 @@ for exact phase-by-phase status.
 - [docs/threat-model.md](docs/threat-model.md) — threats considered and their mitigations
 - [docs/security-model.md](docs/security-model.md) — the Security Score formula, correlation, tenant isolation
 - [docs/scope-guard.md](docs/scope-guard.md) — the SSRF/DNS-rebinding/authorization boundary
-- [docs/hexstrike-integration.md](docs/hexstrike-integration.md) — HexStrike's real API surface and this adapter
+- [docs/dynamic-validation-integration.md](docs/dynamic-validation-integration.md) — the dynamic-validation backend's real API surface and this adapter
 - [docs/github-app.md](docs/github-app.md) — permissions, webhook security, setup
 - [docs/ai-security.md](docs/ai-security.md) — prompt-injection defense, schema validation, cost control
 - [docs/local-development.md](docs/local-development.md) — setup and everyday commands

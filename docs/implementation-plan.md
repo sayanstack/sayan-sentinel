@@ -6,45 +6,45 @@ until it genuinely works (builds, runs, and is tested).
 
 Status legend: `not started` · `in progress` · `done`
 
-| Phase | Scope                                                                                       | Status                                                                   |
-| ----- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 1     | Repository inspection                                                                       | done                                                                     |
-| 2     | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, HexStrike MCP surface) | done                                                                     |
-| 3     | This plan                                                                                   | done                                                                     |
-| 4     | Monorepo scaffold, root tooling, contracts                                                  | done                                                                     |
-| 5     | Foundational backend (NestJS API skeleton, health/readiness, config, logging)               | done                                                                     |
-| 6     | Repository ingestion + code intelligence (AST graph)                                        | done                                                                     |
-| 7     | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters)                       | done                                                                     |
-| 8     | Findings model + correlation engine                                                         | done                                                                     |
-| 9     | AI engine (provider abstraction, schema-validated reasoning)                                | done                                                                     |
-| 10    | Scope Guard                                                                                 | done                                                                     |
-| 11    | HexStrike AI adapter (real interface)                                                       | done                                                                     |
-| 12    | GitHub App integration                                                                      | done                                                                     |
-| 13    | Policy engine + worker job pipeline                                                         | done                                                                     |
-| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                 | done                                                                     |
-| 14    | Frontend (Next.js, dashboard, code graph, findings)                                         | in progress (2 of 10 nav pages real; rest are honest placeholders)       |
-| 15    | Vulnerable demo fixture                                                                     | done                                                                     |
-| 16    | Tests + security regression suite                                                           | done                                                                     |
-| 17    | Docker / CI                                                                                 | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
-| 18    | Documentation                                                                               | done                                                                     |
-| 19    | Full audit                                                                                  | done                                                                     |
-| 20    | Sentinel Rules Engine (AST/call-graph/taint-based SAST, no AI required)                     | done — see notes below                                                   |
-| 21    | Scope Guard V2 hardening + Target Authorization verification primitives                     | done — see notes below                                                   |
-| 22    | Web Security Engine: SafeHttpClient + 5 passive rules                                       | done — see notes below                                                   |
-| 23    | Source-to-Runtime Correlation: route normalization + path matching                          | done — see notes below                                                   |
-| 24    | Target Authorization API (create/verify/list/revoke)                                        | done — see notes below                                                   |
-| 25    | Web Discovery Engine: bounded crawler (robots.txt, sitemap.xml, forms)                      | done — see notes below                                                   |
-| 26    | API Security Engine: OpenAPI import + endpoint inventory + SENTINEL-API-1xx                 | done — see notes below                                                   |
-| 27    | Full Stack Scan orchestration + worker pipeline wiring                                      | done — see notes below                                                   |
-| 28    | Web Targets dashboard UI (real, browser-verified)                                           | done — see notes below                                                   |
-| 29    | Scan result persistence (fixed a real pre-existing gap)                                     | done — see notes below                                                   |
-| 30    | Hosted-mode config interlocks (SENTINEL_HOSTED_MODE)                                        | done — see notes below                                                   |
-| 31    | GitHub Check Run reporting wired into the scan worker                                       | done — see notes below                                                   |
-| 32    | GitHub webhook receiver + scan queue producer                                               | done — see notes below                                                   |
-| 33    | Dashboard: real Scans & Findings pages                                                      | done — see notes below                                                   |
-| 34    | Application Graph persistence + real Code Graph page                                        | done — see notes below                                                   |
-| 35    | Attack Surface persistence + real Attack Surface page                                       | done — see notes below                                                   |
-| 36    | Sentinel Lab expansion (7 → 18 vulns) + a real taint-engine bug fix                         | done — see notes below                                                   |
+| Phase | Scope                                                                                                    | Status                                                                   |
+| ----- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1     | Repository inspection                                                                                    | done                                                                     |
+| 2     | Dependency/API research (GitHub App, Semgrep, Gitleaks, OSV-Scanner, dynamic-validation backend surface) | done                                                                     |
+| 3     | This plan                                                                                                | done                                                                     |
+| 4     | Monorepo scaffold, root tooling, contracts                                                               | done                                                                     |
+| 5     | Foundational backend (NestJS API skeleton, health/readiness, config, logging)                            | done                                                                     |
+| 6     | Repository ingestion + code intelligence (AST graph)                                                     | done                                                                     |
+| 7     | Deterministic security engine (Semgrep/Gitleaks/OSV-Scanner adapters)                                    | done                                                                     |
+| 8     | Findings model + correlation engine                                                                      | done                                                                     |
+| 9     | AI engine (provider abstraction, schema-validated reasoning)                                             | done                                                                     |
+| 10    | Scope Guard                                                                                              | done                                                                     |
+| 11    | Dynamic-validation adapter (real interface)                                                              | done                                                                     |
+| 12    | GitHub App integration                                                                                   | done                                                                     |
+| 13    | Policy engine + worker job pipeline                                                                      | done                                                                     |
+| 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                              | done                                                                     |
+| 14    | Frontend (Next.js, dashboard, code graph, findings)                                                      | in progress (2 of 10 nav pages real; rest are honest placeholders)       |
+| 15    | Vulnerable demo fixture                                                                                  | done                                                                     |
+| 16    | Tests + security regression suite                                                                        | done                                                                     |
+| 17    | Docker / CI                                                                                              | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
+| 18    | Documentation                                                                                            | done                                                                     |
+| 19    | Full audit                                                                                               | done                                                                     |
+| 20    | Sentinel Rules Engine (AST/call-graph/taint-based SAST, no AI required)                                  | done — see notes below                                                   |
+| 21    | Scope Guard V2 hardening + Target Authorization verification primitives                                  | done — see notes below                                                   |
+| 22    | Web Security Engine: SafeHttpClient + 5 passive rules                                                    | done — see notes below                                                   |
+| 23    | Source-to-Runtime Correlation: route normalization + path matching                                       | done — see notes below                                                   |
+| 24    | Target Authorization API (create/verify/list/revoke)                                                     | done — see notes below                                                   |
+| 25    | Web Discovery Engine: bounded crawler (robots.txt, sitemap.xml, forms)                                   | done — see notes below                                                   |
+| 26    | API Security Engine: OpenAPI import + endpoint inventory + SENTINEL-API-1xx                              | done — see notes below                                                   |
+| 27    | Full Stack Scan orchestration + worker pipeline wiring                                                   | done — see notes below                                                   |
+| 28    | Web Targets dashboard UI (real, browser-verified)                                                        | done — see notes below                                                   |
+| 29    | Scan result persistence (fixed a real pre-existing gap)                                                  | done — see notes below                                                   |
+| 30    | Hosted-mode config interlocks (SENTINEL_HOSTED_MODE)                                                     | done — see notes below                                                   |
+| 31    | GitHub Check Run reporting wired into the scan worker                                                    | done — see notes below                                                   |
+| 32    | GitHub webhook receiver + scan queue producer                                                            | done — see notes below                                                   |
+| 33    | Dashboard: real Scans & Findings pages                                                                   | done — see notes below                                                   |
+| 34    | Application Graph persistence + real Code Graph page                                                     | done — see notes below                                                   |
+| 35    | Attack Surface persistence + real Attack Surface page                                                    | done — see notes below                                                   |
+| 36    | Sentinel Lab expansion (7 → 18 vulns) + a real taint-engine bug fix                                      | done — see notes below                                                   |
 
 ## Phase 36 — Sentinel Lab expansion + taint-engine fix
 
@@ -554,7 +554,7 @@ specific bypass would have sailed through undetected after the first fix
 alone. Fixed `isBlockedIPv6` to recognize both forms. 3 regression tests
 added (`scope-guard.test.ts` x2, `ip-blocklist.test.ts` x1).
 
-**New**: `packages/hexstrike-adapter/src/target-verification/` — DNS TXT
+**New**: `packages/security-core/src/target-verification/` — DNS TXT
 and HTTP well-known domain-ownership verification (the ACME DNS-01/
 HTTP-01 pattern), with the HTTP method routed through the same
 SSRF-safety check Scope Guard itself uses before ever connecting, and
@@ -631,9 +631,9 @@ specified and ready to pick up.
 - **Gitleaks**: MIT-licensed, subprocess invocation, JSON report output.
 - **OSV-Scanner**: Apache-2.0, subprocess invocation, JSON report output
   against lockfiles/SBOM.
-- **HexStrike AI**: the `hexstrike-ai` MCP server is available in this
-  environment (tools prefixed `mcp__hexstrike-ai__*`, e.g. `nuclei_scan`,
-  `httpx_probe`, `nmap_scan`, `server_health`). `packages/hexstrike-adapter`
+- **Dynamic-validation backend**: an external pentest-tooling MCP server
+  is available in this environment (tools for `nuclei_scan`, `httpx_probe`,
+  `nmap_scan`, `server_health`, etc.). `packages/security-core`
   must be implemented against this _actual_ tool surface, not a guessed REST
   API — Phase 11 starts with an inventory of the real tool schemas before
   writing the `DynamicValidationProvider` implementation.
@@ -659,7 +659,7 @@ Built, and verified with real command output (not assumed):
   `Result` type, pagination helpers. 9 unit tests, all passing.
 - `packages/config`: zod-validated env schema mirroring `.env.example`,
   `loadConfig()` deriving `aiEnabled` / `githubAppEnabled` /
-  `hexstrikeEnabled` feature flags so optional integrations fail closed
+  `dynamicValidationEnabled` feature flags so optional integrations fail closed
   into a "not configured" state rather than a crash or a fake success.
   6 unit tests, all passing.
 - `packages/database`: full Prisma schema for the Section 32 data model
@@ -987,16 +987,17 @@ factory), all passing. Workspace total: 159 tests across 9 packages/apps,
 
 ## Phase 10 + 11 completion notes
 
-Built `packages/hexstrike-adapter`, covering both Scope Guard (Section
-19-20) and the HexStrike integration (Section 18) together since the spec
-treats them as one continuous concern and Section 20 requires every
-HexStrike call to pass through Scope Guard immediately beforehand.
+Built `packages/security-core`, covering both Scope Guard (Section
+19-20) and the dynamic-validation integration (Section 18) together since
+the spec treats them as one continuous concern and Section 20 requires
+every dynamic-validation call to pass through Scope Guard immediately
+beforehand.
 
-**Real interface research, not guessed**: the `hexstrike-ai` MCP server is
-actually connected in this environment. Rather than guess HexStrike's REST
-API shape, called its passive, read-only tools (`server_health`,
+**Real interface research, not guessed**: an external pentest-tooling MCP
+server was actually connected in this environment. Rather than guess its
+REST API shape, called its passive, read-only tools (`server_health`,
 `get_telemetry`, `nmap_scan` against a placeholder target, `get_process_status`)
-against the (unreachable) local HexStrike server and read the real error
+against the (unreachable) local server and read the real error
 messages, which reveal the genuine endpoint URLs verbatim:
 `GET /health`, `GET /api/telemetry`, `POST /api/tools/<toolName>`,
 `GET /api/processes/status/<pid>`, base `http://127.0.0.1:8888`. The
@@ -1033,18 +1034,18 @@ sits outside the AI and cannot be influenced by it:
   scenario, a literal-cloud-metadata-IP scenario, and the case where the
   path/tier/host all check out.
 
-**HexStrike adapter** (`src/client/`, `src/provider.ts`):
+**Dynamic-validation adapter** (`src/client/`, `src/provider.ts`):
 
-- `HexStrikeHttpClient` — talks to the four verified endpoints above,
+- `DynamicValidationHttpClient` — talks to the four verified endpoints above,
   never throws (a connection failure, timeout, or non-JSON response all
-  come back as `{ success: false, error }`, matching HexStrike's own
+  come back as `{ success: false, error }`, matching the backend's own
   failure shape). Tested against a real local HTTP server spun up in the
   test file, not a mocked `fetch`.
-- `HexStrikeDynamicValidationProvider` implements the
+- `RemoteDynamicValidationProvider` implements the
   `DynamicValidationProvider` interface from Section 18. **Scope Guard
   runs unconditionally at the top of `validate()`, before the
-  capability/tier check and before any HexStrike call** — this is the
-  actual code-level enforcement of "HexStrike cannot bypass Scope Guard,"
+  capability/tier check and before any backend call** — this is the
+  actual code-level enforcement of "the backend cannot bypass Scope Guard,"
   verified by a test asserting `runTool` is never called when Scope Guard
   rejects.
 - Only two capabilities are offered — `http_probe` (Tier 0, via httpx) and
@@ -1063,7 +1064,7 @@ sits outside the AI and cannot be influenced by it:
   exercise). Fixed by threading an optional `resolver` through
   `ValidationRequest` — useful in production too, not just for tests.
 
-**Test results**: 58 tests in `hexstrike-adapter` (11 IP blocklist, 8 DNS
+**Test results**: 58 tests in `security-core` (11 IP blocklist, 8 DNS
 resolution, 16 Scope Guard end-to-end, 8 HTTP client, 9 provider, 6 rate
 limiter). Also fixed pre-existing flakiness in
 `code-intelligence`'s git-ingestor tests surfaced by running the full
@@ -1219,13 +1220,13 @@ check that would fail on its first real run.
 ## Phase 18 completion notes
 
 Wrote the full `docs/` set: `architecture.md`, `threat-model.md`,
-`security-model.md`, `scope-guard.md`, `hexstrike-integration.md`,
+`security-model.md`, `scope-guard.md`, `dynamic-validation-integration.md`,
 `github-app.md`, `ai-security.md`, `local-development.md`,
 `deployment.md`, `demo.md`, `licensing.md`. Every one was written against
 what's actually built and tested in this repository — not the aspirational
 final product — and each states plainly, in its own text, which
-integrations haven't been exercised live (AI, GitHub App, HexStrike,
-Docker) rather than letting that ambiguity sit implicit. README.md updated
+integrations haven't been exercised live (AI, GitHub App, dynamic
+validation, Docker) rather than letting that ambiguity sit implicit. README.md updated
 with a documentation index and its stale "once written" caveats removed
 now that those files exist.
 
@@ -1252,7 +1253,7 @@ document that gap, closed it:
   learn the resource exists. 4 regression tests, including the core case:
   a real row exists in the (mocked) database, but a user without
   membership in its organization never receives it.
-- SSRF: `packages/hexstrike-adapter`'s Scope Guard suite (35 tests).
+- SSRF: `packages/security-core`'s Scope Guard suite (35 tests).
 - Path traversal: `packages/code-intelligence`'s `path-safety`/
   `file-walker` suites.
 - Webhook forgery: `packages/github`'s `verify-signature` suite.

@@ -53,15 +53,15 @@ consuming jobs.
 
 ## What's genuinely runnable today vs. what needs credentials
 
-| Capability                                            | Needs                                                              |
-| ----------------------------------------------------- | ------------------------------------------------------------------ |
-| `pnpm build`/`lint`/`typecheck`/`test`                | nothing — pure Node/TS                                             |
-| `/health/live`                                        | nothing                                                            |
-| `/health/ready` reporting real status                 | Postgres + Redis reachable                                         |
-| Deterministic scanning (Semgrep/Gitleaks/OSV-Scanner) | those binaries installed and on `PATH`/configured `*_BIN` env vars |
-| AI-assisted analysis                                  | `AI_PROVIDER` + matching API key/URL                               |
-| GitHub integration                                    | a registered GitHub App — see [github-app.md](github-app.md)       |
-| Dynamic validation                                    | `HEXSTRIKE_ENABLED=true` + a reachable HexStrike server            |
+| Capability                                            | Needs                                                                     |
+| ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| `pnpm build`/`lint`/`typecheck`/`test`                | nothing — pure Node/TS                                                    |
+| `/health/live`                                        | nothing                                                                   |
+| `/health/ready` reporting real status                 | Postgres + Redis reachable                                                |
+| Deterministic scanning (Semgrep/Gitleaks/OSV-Scanner) | those binaries installed and on `PATH`/configured `*_BIN` env vars        |
+| AI-assisted analysis                                  | `AI_PROVIDER` + matching API key/URL                                      |
+| GitHub integration                                    | a registered GitHub App — see [github-app.md](github-app.md)              |
+| Dynamic validation                                    | `DYNAMIC_VALIDATION_ENABLED=true` + a reachable dynamic-validation server |
 
 None of the credentialed integrations are installed/configured in this
 project's own development environment — see

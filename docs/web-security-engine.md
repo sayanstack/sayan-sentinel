@@ -26,10 +26,10 @@ five checks:
    scope for this client entirely (Tier 2/3 state-changing requests are a
    different, not-yet-built code path with its own approval gate, per the
    Safety Tier model).
-2. **Scope Guard**, via `@sayan-sentinel/hexstrike-adapter`'s
+2. **Scope Guard**, via `@sayan-sentinel/security-core`'s
    `evaluateScopeGuard` — the exact same authorization/expiration/
-   revocation/tier/path/IP-blocklist decision chain dynamic HexStrike
-   validation uses. This is checked **again on every redirect hop**
+   revocation/tier/path/IP-blocklist decision chain dynamic validation
+   uses. This is checked **again on every redirect hop**
    before it's followed: a request that starts at an authorized target
    and gets redirected to `evil.example.com` is refused at that hop, not
    followed and reported after the fact. This closes the "redirect

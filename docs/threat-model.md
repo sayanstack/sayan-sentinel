@@ -29,12 +29,12 @@ its code, exfiltrate secrets, or manipulate its AI reasoning.
 **Threat**: a dynamic-validation request could be redirected at an
 internal service, a cloud metadata endpoint, or localhost.
 
-**Mitigations** (`packages/hexstrike-adapter/src/scope-guard/`):
+**Mitigations** (`packages/security-core/src/scope-guard/`):
 
-- Every `HexStrikeDynamicValidationProvider.validate()` call runs
-  `evaluateScopeGuard()` unconditionally before any HexStrike call —
-  verified by a test asserting the HexStrike client is never invoked when
-  Scope Guard rejects.
+- Every `RemoteDynamicValidationProvider.validate()` call runs
+  `evaluateScopeGuard()` unconditionally before any backend call —
+  verified by a test asserting the dynamic-validation client is never
+  invoked when Scope Guard rejects.
 - Localhost/private/link-local/cloud-metadata addresses are blocked by
   default; the check re-resolves the hostname at check time and inspects
   the **resolved address**, not the hostname string, specifically
@@ -46,8 +46,9 @@ internal service, a cloud metadata endpoint, or localhost.
   implemented.
 
 **Known gap**: the actual outbound HTTP client that executes a validated
-request (inside HexStrike itself, not built by this adapter) must connect
-to the exact address Scope Guard just checked, not re-resolve a second
+request (inside the external dynamic-validation backend itself, not
+built by this adapter) must connect to the exact address Scope Guard
+just checked, not re-resolve a second
 time — documented as a hard requirement in `resolve-and-check.ts`, since
 skipping it reopens the rebinding window between check and connect.
 

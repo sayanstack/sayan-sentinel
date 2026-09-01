@@ -1,5 +1,5 @@
 {
-  "name": "@sayan-sentinel/hexstrike-adapter",
+  "name": "@sayan-sentinel/security-core",
   "version": "0.1.0",
   "private": true,
   "main": "./dist/index.js",

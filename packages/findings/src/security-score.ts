@@ -5,7 +5,7 @@ export interface ScoredFindingInput {
   confidence: ConfidenceLevel;
   status: FindingStatus;
   firstSeenAt: Date;
-  /** True once a HexStrike dynamic validation has actually confirmed exploitability. */
+  /** True once a dynamic validation has actually confirmed exploitability. */
   validatedByDynamicTesting?: boolean;
 }
 

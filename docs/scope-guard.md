@@ -1,9 +1,10 @@
 # Scope Guard
 
 Scope Guard is the deterministic security boundary in
-`packages/hexstrike-adapter/src/scope-guard/` that sits between any
-dynamic-validation request and HexStrike. It has no dependency on the AI
-engine and cannot be influenced by anything the AI produces.
+`packages/security-core/src/scope-guard/` that sits between any
+dynamic-validation request and the configured backend. It has no
+dependency on the AI engine and cannot be influenced by anything the AI
+produces.
 
 ## Decision chain (`evaluateScopeGuard`)
 
@@ -82,13 +83,13 @@ block.
 ## What executes the actual request
 
 Scope Guard is a decision function — it does not make HTTP requests
-itself. The `HexStrikeDynamicValidationProvider` in the same package calls
+itself. The `RemoteDynamicValidationProvider` in the same package calls
 it unconditionally at the top of `validate()`, before checking which
-capability was requested and before any HexStrike call. This ordering is
-what makes "HexStrike cannot bypass Scope Guard" a property enforced by
-the code path, not just a design intention — verified by a test asserting
-the HexStrike client is never invoked when Scope Guard rejects the
-request.
+capability was requested and before any backend call. This ordering is
+what makes "the dynamic-validation backend cannot bypass Scope Guard" a
+property enforced by the code path, not just a design intention —
+verified by a test asserting the dynamic-validation client is never
+invoked when Scope Guard rejects the request.
 
 **For redirect handling**: whoever executes the validated HTTP request
 downstream must call `evaluateScopeGuard` again on every redirect
@@ -108,7 +109,7 @@ security tool, not an autonomous exploitation platform.
 
 ## Target Authorization verification
 
-`packages/hexstrike-adapter/src/target-verification/` implements the
+`packages/security-core/src/target-verification/` implements the
 domain-ownership proof `verifiedAt` on a `TargetAuthorizationRecord`
 depends on — nothing sets that field without one of these actually
 succeeding. Two methods, both modeled on the equivalent ACME (Let's

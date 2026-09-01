@@ -62,7 +62,12 @@ function fakeRequest(body: string, headers: Record<string, string | undefined>) 
 function fakeConfig(githubAppEnabled: boolean): SentinelConfig {
   return {
     env: { GITHUB_WEBHOOK_SECRET: WEBHOOK_SECRET },
-    features: { githubAppEnabled, aiEnabled: false, hexstrikeEnabled: false, hostedMode: false },
+    features: {
+      githubAppEnabled,
+      aiEnabled: false,
+      dynamicValidationEnabled: false,
+      hostedMode: false,
+    },
   } as unknown as SentinelConfig;
 }
 

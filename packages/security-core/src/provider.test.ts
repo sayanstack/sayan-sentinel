@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import type { HexStrikeToolResult, IHexStrikeClient } from "./client/hexstrike-http-client";
-import { HexStrikeDynamicValidationProvider } from "./provider";
+import type {
+  DynamicValidationToolResult,
+  IDynamicValidationClient,
+} from "./client/dynamic-validation-http-client";
+import { RemoteDynamicValidationProvider } from "./provider";
 import type { TargetAuthorizationRecord } from "./scope-guard/types";
 
 const NOW = new Date("2026-08-31T00:00:00Z");
@@ -24,21 +27,24 @@ function authorization(
   };
 }
 
-function fakeClient(overrides: Partial<IHexStrikeClient> = {}): IHexStrikeClient {
+function fakeClient(overrides: Partial<IDynamicValidationClient> = {}): IDynamicValidationClient {
   return {
-    health: vi.fn(async (): Promise<HexStrikeToolResult> => ({ success: true })),
-    telemetry: vi.fn(async (): Promise<HexStrikeToolResult> => ({ success: true })),
-    runTool: vi.fn(async (): Promise<HexStrikeToolResult> => ({ success: true, findings: [] })),
-    processStatus: vi.fn(async (): Promise<HexStrikeToolResult> => ({ success: true })),
-    terminateProcess: vi.fn(async (): Promise<HexStrikeToolResult> => ({ success: true })),
+    health: vi.fn(async (): Promise<DynamicValidationToolResult> => ({ success: true })),
+    telemetry: vi.fn(async (): Promise<DynamicValidationToolResult> => ({ success: true })),
+    runTool: vi.fn(async (): Promise<DynamicValidationToolResult> => ({
+      success: true,
+      findings: [],
+    })),
+    processStatus: vi.fn(async (): Promise<DynamicValidationToolResult> => ({ success: true })),
+    terminateProcess: vi.fn(async (): Promise<DynamicValidationToolResult> => ({ success: true })),
     ...overrides,
   };
 }
 
-describe("HexStrikeDynamicValidationProvider", () => {
+describe("RemoteDynamicValidationProvider", () => {
   describe("healthCheck", () => {
     it("reports available when the client reports success", async () => {
-      const provider = new HexStrikeDynamicValidationProvider(fakeClient());
+      const provider = new RemoteDynamicValidationProvider(fakeClient());
       expect(await provider.healthCheck()).toEqual({ available: true });
     });
 
@@ -46,7 +52,7 @@ describe("HexStrikeDynamicValidationProvider", () => {
       const client = fakeClient({
         health: vi.fn(async () => ({ success: false, error: "connection refused" })),
       });
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
       const health = await provider.healthCheck();
       expect(health.available).toBe(false);
       expect(health.reason).toBe("connection refused");
@@ -55,7 +61,7 @@ describe("HexStrikeDynamicValidationProvider", () => {
 
   describe("capabilities", () => {
     it("only offers Tier 0 and Tier 1 capabilities, never Tier 2 or 3", async () => {
-      const provider = new HexStrikeDynamicValidationProvider(fakeClient());
+      const provider = new RemoteDynamicValidationProvider(fakeClient());
       const capabilities = await provider.capabilities();
       expect(capabilities.every((c) => c.tier <= 1)).toBe(true);
       expect(capabilities.length).toBeGreaterThan(0);
@@ -63,9 +69,9 @@ describe("HexStrikeDynamicValidationProvider", () => {
   });
 
   describe("validate", () => {
-    it("never calls HexStrike when Scope Guard rejects the request", async () => {
+    it("never calls the dynamic validation backend when Scope Guard rejects the request", async () => {
       const client = fakeClient();
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
 
       const result = await provider.validate({
         url: "https://unauthorized.example.com/",
@@ -82,7 +88,7 @@ describe("HexStrikeDynamicValidationProvider", () => {
 
     it("rejects a tier that exceeds the capability's own supported tier, even if Scope Guard would allow the authorization", async () => {
       const client = fakeClient();
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
 
       const result = await provider.validate({
         url: "https://target.example.com/",
@@ -98,9 +104,9 @@ describe("HexStrikeDynamicValidationProvider", () => {
       expect(client.runTool).not.toHaveBeenCalled();
     });
 
-    it("calls the mapped HexStrike tool and returns 'inconclusive' on a successful call", async () => {
+    it("calls the mapped dynamic validation tool and returns 'inconclusive' on a successful call", async () => {
       const client = fakeClient();
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
 
       const result = await provider.validate({
         url: "https://target.example.com/",
@@ -121,7 +127,7 @@ describe("HexStrikeDynamicValidationProvider", () => {
 
     it("maps vulnerability_scan to the nuclei tool", async () => {
       const client = fakeClient();
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
 
       await provider.validate({
         url: "https://target.example.com/",
@@ -139,11 +145,11 @@ describe("HexStrikeDynamicValidationProvider", () => {
       );
     });
 
-    it("returns 'failed' — never a fabricated success — when the HexStrike call itself fails", async () => {
+    it("returns 'failed' — never a fabricated success — when the dynamic validation call itself fails", async () => {
       const client = fakeClient({
         runTool: vi.fn(async () => ({ success: false, error: "server unreachable" })),
       });
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
 
       const result = await provider.validate({
         url: "https://target.example.com/",
@@ -163,7 +169,7 @@ describe("HexStrikeDynamicValidationProvider", () => {
   describe("cancel", () => {
     it("is a no-op for an unknown jobId rather than throwing", async () => {
       const client = fakeClient();
-      const provider = new HexStrikeDynamicValidationProvider(client);
+      const provider = new RemoteDynamicValidationProvider(client);
       await expect(provider.cancel("unknown-job")).resolves.toBeUndefined();
       expect(client.terminateProcess).not.toHaveBeenCalled();
     });

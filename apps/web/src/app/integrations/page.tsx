@@ -4,7 +4,7 @@ export default function IntegrationsPage() {
   return (
     <NotImplementedPage
       title="Integrations"
-      description="GitHub App, AI provider, and HexStrike connection status."
+      description="GitHub App, AI provider, and dynamic validation connection status."
     />
   );
 }

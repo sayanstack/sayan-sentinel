@@ -67,7 +67,7 @@ IDOR-test yet; this is a disclosed gap, not a completed control.
 - AI is off by default (`AI_PROVIDER=none`); every consumer treats a
   missing provider as "deterministic analysis completed successfully,"
   never a hard failure.
-- HexStrike is off by default (`HEXSTRIKE_ENABLED=false`); Tier 2/3
+- Dynamic validation is off by default (`DYNAMIC_VALIDATION_ENABLED=false`); Tier 2/3
   dynamic-validation capabilities are not implemented in code at all, not
   merely disabled by configuration.
 - Structured logging (`apps/api`) redacts auth headers, cookies, and

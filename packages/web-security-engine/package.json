@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@sayan-sentinel/findings": "workspace:*",
-    "@sayan-sentinel/hexstrike-adapter": "workspace:*",
+    "@sayan-sentinel/security-core": "workspace:*",
     "@sayan-sentinel/shared": "workspace:*"
   },
   "devDependencies": {

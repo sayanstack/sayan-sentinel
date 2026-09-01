@@ -40,7 +40,7 @@ conflicting combination and check it throws `ConfigValidationError` —
 not just that the schema _looks_ like it should.
 
 `features.hostedMode` is derived alongside the existing
-`aiEnabled`/`githubAppEnabled`/`hexstrikeEnabled` flags, for any future
+`aiEnabled`/`githubAppEnabled`/`dynamicValidationEnabled` flags, for any future
 call site (API route, worker job) that needs to branch on it.
 
 ## What hosted mode does NOT change (because it was already true)
@@ -55,7 +55,7 @@ call site (API route, worker job) that needs to branch on it.
   `LOCAL_LAB_MODE` is the only bypass, and (per above) hosted mode makes
   it impossible to combine the two.
 - Tier 2/3 are already unavailable everywhere, hosted or not — the
-  `ValidationRequest` type in `hexstrike-adapter` is a closed union of
+  `ValidationRequest` type in `security-core` is a closed union of
   just the two implemented capabilities.
 - Audit logging already happens unconditionally for every target
   lifecycle transition.

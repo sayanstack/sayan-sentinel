@@ -1,4 +1,4 @@
-import { evaluateScopeGuard } from "@sayan-sentinel/hexstrike-adapter";
+import { evaluateScopeGuard } from "@sayan-sentinel/security-core";
 import type {
   FetchResponseLike,
   SafeHttpAuditEvent,
