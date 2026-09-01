@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 
 export interface PrivateKeySource {
@@ -40,4 +41,35 @@ export function resolvePrivateKey(source: PrivateKeySource): string | null {
     }
   }
   return null;
+}
+
+export interface PrivateKeyDiagnostics {
+  valid: boolean;
+  detail: string;
+  /** Safe to log: no key material, just shape — length, line count, and whether the PEM markers are present. */
+  shape: string;
+}
+
+/**
+ * Validates a resolved key with the same `crypto` module Node's own TLS/JWT
+ * machinery uses, so a malformed key is caught — with an actionable,
+ * key-shape summary that never includes the key material itself — at
+ * `GitHubAppClient` construction time (once, at process startup) instead of
+ * surfacing as an opaque `DataError: Invalid keyData` the first time a
+ * webhook happens to need a JWT signed.
+ */
+export function validatePrivateKey(key: string): PrivateKeyDiagnostics {
+  const lines = key.split("\n");
+  const shape = `length=${key.length} lines=${lines.length} startsWithBegin=${key.startsWith("-----BEGIN")} endsWithEnd=${key.trimEnd().endsWith("-----")} firstLine="${lines[0]}" lastLine="${lines[lines.length - 1]}"`;
+
+  try {
+    crypto.createPrivateKey(key);
+    return { valid: true, detail: "OK", shape };
+  } catch (error) {
+    return {
+      valid: false,
+      detail: error instanceof Error ? error.message : String(error),
+      shape,
+    };
+  }
 }
