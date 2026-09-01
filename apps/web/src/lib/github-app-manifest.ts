@@ -16,12 +16,18 @@ const GITHUB_APP_PERMISSIONS = {
   issues: "read",
 } as const;
 
-const GITHUB_APP_WEBHOOK_EVENTS = [
-  "installation",
-  "installation_repositories",
-  "push",
-  "pull_request",
-] as const;
+/**
+ * `installation`/`installation_repositories` are deliberately excluded
+ * here even though `apps/api`'s webhook handler does process them
+ * (packages/github/src/permissions.ts's `GITHUB_APP_WEBHOOK_EVENTS`
+ * includes all four) — GitHub rejects a manifest that lists them in
+ * `default_events`, since they're metadata-level events sent to every
+ * App automatically and aren't gated by any permission an App can
+ * request. Confirmed by GitHub's own manifest-validation error:
+ * "Default events unsupported: installation and
+ * installation_repositories" / "...are not supported by permissions."
+ */
+const GITHUB_APP_MANIFEST_EVENTS = ["push", "pull_request"] as const;
 
 export interface GithubAppManifest {
   name: string;
@@ -54,6 +60,6 @@ export function buildGithubAppManifest(params: {
     // can be made public from the App's own GitHub settings later.
     public: false,
     default_permissions: GITHUB_APP_PERMISSIONS,
-    default_events: GITHUB_APP_WEBHOOK_EVENTS,
+    default_events: GITHUB_APP_MANIFEST_EVENTS,
   };
 }
