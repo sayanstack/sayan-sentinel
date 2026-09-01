@@ -11,6 +11,10 @@ import {
 import { writeAuditEvent } from "../audit/write-audit-event";
 import { resolveDemoUserId } from "../common/resolve-demo-user-id";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
+import {
+  autoConfigureCloudflareTxtRecord,
+  type CloudflareAutoConfigureResult,
+} from "./auto-configure-cloudflare";
 import { detectProvider, type ProviderDetection } from "./detect-provider";
 import type { CreateTargetDto } from "./dto/create-target.dto";
 import { normalizeHost } from "./normalize-host";
@@ -156,6 +160,37 @@ export class TargetsService {
     }
 
     return { ok: true, result: await runQuickScan(target) };
+  }
+
+  /**
+   * Creates the DNS TXT verification record directly in the caller's own
+   * Cloudflare account instead of making them copy/paste it by hand — see
+   * `autoConfigureCloudflareTxtRecord`'s doc comment for why this is
+   * Cloudflare-specific and why the token is never persisted. `not_found`
+   * mirrors every other tenant-checked lookup; `not_pending` covers a
+   * target that's already verified, revoked, or was never pending a
+   * challenge in the first place — there's nothing left to configure.
+   */
+  async autoConfigureCloudflareForUser(
+    userId: string,
+    targetId: string,
+    apiToken: string,
+  ): Promise<
+    | { ok: true; result: CloudflareAutoConfigureResult }
+    | { ok: false; reason: "not_found" | "not_pending" }
+  > {
+    const target = await this.getTargetForUser(userId, targetId);
+    if (!target) return { ok: false, reason: "not_found" };
+    if (target.verifiedAt || target.revokedAt || !target.verificationChallenge) {
+      return { ok: false, reason: "not_pending" };
+    }
+
+    const result = await autoConfigureCloudflareTxtRecord({
+      host: target.host,
+      verificationChallenge: target.verificationChallenge,
+      apiToken,
+    });
+    return { ok: true, result };
   }
 
   /** Tenant-checked single lookup — returns `null` for both "doesn't exist" and "exists but you can't see it," never distinguishing the two (Section 35 IDOR pattern). */

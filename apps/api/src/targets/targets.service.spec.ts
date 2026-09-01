@@ -1,6 +1,7 @@
 import { prisma } from "@sayan-sentinel/database";
 import { generateVerificationChallenge, verifyTarget } from "@sayan-sentinel/security-core";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
+import { autoConfigureCloudflareTxtRecord } from "./auto-configure-cloudflare";
 import { detectProvider } from "./detect-provider";
 import { runQuickScan } from "./run-quick-scan";
 import { TargetsService } from "./targets.service";
@@ -25,6 +26,7 @@ jest.mock("@sayan-sentinel/security-core", () => ({
 
 jest.mock("./detect-provider", () => ({ detectProvider: jest.fn() }));
 jest.mock("./run-quick-scan", () => ({ runQuickScan: jest.fn() }));
+jest.mock("./auto-configure-cloudflare", () => ({ autoConfigureCloudflareTxtRecord: jest.fn() }));
 
 const ACME_TARGET = {
   id: "target-1",
@@ -471,5 +473,73 @@ describe("TargetsService.runScanForUser", () => {
     const outcome = await service.runScanForUser("user-alice", "target-1");
 
     expect(outcome).toEqual({ ok: false, reason: "not_ready" });
+  });
+});
+
+describe("TargetsService.autoConfigureCloudflareForUser", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const PENDING_TARGET = { ...ACME_TARGET, verificationChallenge: "the-challenge" };
+
+  it("configures Cloudflare for a target still awaiting verification", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue(PENDING_TARGET);
+    (autoConfigureCloudflareTxtRecord as jest.Mock).mockResolvedValue({
+      ok: true,
+      detail: "Added TXT record.",
+    });
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.autoConfigureCloudflareForUser(
+      "user-alice",
+      "target-1",
+      "cf-token",
+    );
+
+    expect(outcome).toEqual({ ok: true, result: { ok: true, detail: "Added TXT record." } });
+    expect(autoConfigureCloudflareTxtRecord).toHaveBeenCalledWith({
+      host: PENDING_TARGET.host,
+      verificationChallenge: "the-challenge",
+      apiToken: "cf-token",
+    });
+  });
+
+  it("reports not_found for a target the caller can't access, without calling Cloudflare", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue(PENDING_TARGET);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-mallory", organizationId: "org-globex" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.autoConfigureCloudflareForUser(
+      "user-mallory",
+      "target-1",
+      "cf-token",
+    );
+
+    expect(outcome).toEqual({ ok: false, reason: "not_found" });
+    expect(autoConfigureCloudflareTxtRecord).not.toHaveBeenCalled();
+  });
+
+  it("reports not_pending for a target that's already verified", async () => {
+    (prisma.targetAuthorization.findUnique as jest.Mock).mockResolvedValue({
+      ...PENDING_TARGET,
+      verifiedAt: new Date(),
+    });
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const outcome = await service.autoConfigureCloudflareForUser(
+      "user-alice",
+      "target-1",
+      "cf-token",
+    );
+
+    expect(outcome).toEqual({ ok: false, reason: "not_pending" });
+    expect(autoConfigureCloudflareTxtRecord).not.toHaveBeenCalled();
   });
 });

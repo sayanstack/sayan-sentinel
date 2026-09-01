@@ -10,6 +10,7 @@ import {
   Post,
   UnauthorizedException,
 } from "@nestjs/common";
+import { AutoConfigureCloudflareDto } from "./dto/auto-configure-cloudflare.dto";
 import { CreateTargetDto } from "./dto/create-target.dto";
 import { QuickStartTargetDto } from "./dto/quick-start-target.dto";
 import { TargetsService } from "./targets.service";
@@ -85,6 +86,33 @@ export class TargetsController {
       );
     }
     return outcome.result;
+  }
+
+  /**
+   * The Cloudflare-only "do it for me" alternative to copying the DNS TXT
+   * record by hand — see `TargetsService.autoConfigureCloudflareForUser`.
+   * The token is read from the request body once and never stored.
+   */
+  @Post(":id/auto-configure/cloudflare")
+  async autoConfigureCloudflare(
+    @Headers("x-demo-user-id") userIdHeader: string | undefined,
+    @Param("id") id: string,
+    @Body() body: AutoConfigureCloudflareDto,
+  ) {
+    const userId = requireUserId(userIdHeader);
+    const outcome = await this.targetsService.autoConfigureCloudflareForUser(
+      userId,
+      id,
+      body.apiToken,
+    );
+    if (!outcome.ok && outcome.reason === "not_found") throw new NotFoundException();
+    if (!outcome.ok) {
+      throw new ConflictException("This target isn't awaiting verification.");
+    }
+    if (!outcome.result.ok) {
+      throw new BadRequestException(outcome.result.detail);
+    }
+    return { detail: outcome.result.detail };
   }
 
   @Get()

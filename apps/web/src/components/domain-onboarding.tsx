@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import {
+  autoConfigureCloudflare,
   quickStartTarget,
   scanTarget,
   verifyTarget,
@@ -43,6 +44,13 @@ export function DomainOnboarding({
   const [verifyDetail, setVerifyDetail] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<QuickScanResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [cloudflareOpen, setCloudflareOpen] = useState(false);
+  const [cloudflareToken, setCloudflareToken] = useState("");
+  const [cloudflareSubmitting, setCloudflareSubmitting] = useState(false);
+  const [cloudflareMessage, setCloudflareMessage] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -92,6 +100,50 @@ export function DomainOnboarding({
     }
   }
 
+  async function handleAutoConfigureCloudflare(e: FormEvent) {
+    e.preventDefault();
+    if (!target || !cloudflareToken.trim()) return;
+    setCloudflareSubmitting(true);
+    setCloudflareMessage(null);
+    try {
+      const result = await autoConfigureCloudflare(target.id, cloudflareToken.trim());
+      setCloudflareMessage({ kind: "success", text: result.detail });
+      setCloudflareToken("");
+      await handleVerify();
+    } catch (err) {
+      setCloudflareMessage({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Couldn't configure Cloudflare automatically.",
+      });
+    } finally {
+      setCloudflareSubmitting(false);
+    }
+  }
+
+  function downloadTxtRecordFile() {
+    if (!target) return;
+    const name = `_sentinel-verification.${target.host}`;
+    const value = `sentinel-verification=${target.verificationChallenge}`;
+    const contents = [
+      `Sentinel domain ownership verification for ${target.host}`,
+      "",
+      "Add this as a DNS TXT record with your domain/DNS provider:",
+      "",
+      `  Name:  ${name}`,
+      `  Value: ${value}`,
+      "",
+      'Then return to Sentinel and click "I\'ve added it — Verify now."',
+    ].join("\n");
+
+    const blob = new Blob([contents], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sentinel-dns-record-${target.host}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function reset() {
     setStep("input");
     setHost("");
@@ -100,6 +152,9 @@ export function DomainOnboarding({
     setVerifyDetail(null);
     setScanResult(null);
     setError(null);
+    setCloudflareOpen(false);
+    setCloudflareToken("");
+    setCloudflareMessage(null);
   }
 
   async function copy(value: string, key: string) {
@@ -214,7 +269,72 @@ export function DomainOnboarding({
                 }
                 copied={copied === "value"}
               />
+              <button
+                type="button"
+                onClick={downloadTxtRecordFile}
+                className="text-xs text-accent-cyan hover:underline"
+              >
+                Download as a file →
+              </button>
             </div>
+
+            {detection?.nameserverProvider === "Cloudflare" && (
+              <div className="rounded-xl border border-accent-cyan/30 bg-accent-cyan/5 p-4">
+                {!cloudflareOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setCloudflareOpen(true)}
+                    className="text-sm font-medium text-accent-cyan hover:underline"
+                  >
+                    ⚡ Auto-add this record via Cloudflare instead →
+                  </button>
+                ) : (
+                  <form onSubmit={handleAutoConfigureCloudflare} className="space-y-2">
+                    <p className="text-sm text-text">
+                      Paste a Cloudflare API token and Sentinel adds the record for you — no
+                      copy-pasting into Cloudflare&apos;s dashboard needed.
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      Create one at{" "}
+                      <a
+                        href="https://dash.cloudflare.com/profile/api-tokens"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-accent-cyan hover:underline"
+                      >
+                        dash.cloudflare.com/profile/api-tokens
+                      </a>{" "}
+                      using the &quot;Edit zone DNS&quot; template, scoped to this domain. The token
+                      is used once and never stored.
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={cloudflareToken}
+                        onChange={(e) => setCloudflareToken(e.target.value)}
+                        placeholder="Cloudflare API token"
+                        type="password"
+                        autoComplete="off"
+                        className="flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-text placeholder:text-text-muted focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!cloudflareToken.trim() || cloudflareSubmitting}
+                        className="rounded-md bg-accent-cyan px-3 py-1.5 text-sm font-medium text-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {cloudflareSubmitting ? "Adding…" : "Add & verify"}
+                      </button>
+                    </div>
+                    {cloudflareMessage && (
+                      <p
+                        className={`text-xs ${cloudflareMessage.kind === "success" ? "text-severity-low" : "text-severity-high"}`}
+                      >
+                        {cloudflareMessage.text}
+                      </p>
+                    )}
+                  </form>
+                )}
+              </div>
+            )}
 
             {verifyDetail && <p className="text-sm text-severity-medium">{verifyDetail}</p>}
             {error && <p className="text-sm text-severity-high">{error}</p>}

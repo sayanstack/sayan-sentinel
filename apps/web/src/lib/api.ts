@@ -284,6 +284,14 @@ export function scanTarget(id: string): Promise<QuickScanResult> {
   return apiFetch<QuickScanResult>(`/targets/${id}/scan`, { method: "POST" });
 }
 
+/** The Cloudflare-only "do it for me" DNS setup — the token is used once server-side and never stored. */
+export function autoConfigureCloudflare(id: string, apiToken: string): Promise<{ detail: string }> {
+  return apiFetch<{ detail: string }>(`/targets/${id}/auto-configure/cloudflare`, {
+    method: "POST",
+    body: { apiToken },
+  });
+}
+
 export type ScanTrigger = "MANUAL" | "PUSH" | "PULL_REQUEST" | "SCHEDULED";
 export type ScanStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
 
