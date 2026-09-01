@@ -1,17 +1,6 @@
 import { loadConfig } from "@sayan-sentinel/config";
-import type { ConnectionOptions } from "bullmq";
+import { parseRedisConnection } from "@sayan-sentinel/queue";
 import { startScanWorker } from "./queue/scan-worker";
-
-/** Parsed manually rather than passed as a raw URL string, to avoid depending on exactly which connection-string forms a given BullMQ/ioredis version accepts. */
-function parseRedisConnection(redisUrl: string): ConnectionOptions {
-  const parsed = new URL(redisUrl);
-  return {
-    host: parsed.hostname,
-    port: parsed.port ? Number(parsed.port) : 6379,
-    password: parsed.password || undefined,
-    username: parsed.username || undefined,
-  };
-}
 
 function main(): void {
   const config = loadConfig(process.env);

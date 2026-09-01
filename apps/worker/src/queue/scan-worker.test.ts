@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Job } from "bullmq";
 import type { FullStackScanResult } from "../pipeline/full-stack-scan-types";
-import type { ScanJobData } from "./queue-names";
+import type { ScanJobData } from "@sayan-sentinel/queue";
 import { processScanJob } from "./scan-worker";
 
 const { runFullStackScanPipelineMock, persistScanResultMock, buildCheckRunSummaryMock } =

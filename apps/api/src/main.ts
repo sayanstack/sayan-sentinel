@@ -5,7 +5,12 @@ import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // rawBody: true keeps req.body parsed as JSON for every route as usual,
+  // while also populating req.rawBody with the exact bytes received — the
+  // GitHub webhook controller needs those exact bytes for HMAC signature
+  // verification, since JSON.stringify(JSON.parse(x)) is not guaranteed to
+  // reproduce x byte-for-byte.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
   app.enableCors({ origin: process.env.APP_URL ?? "http://localhost:3000", credentials: true });

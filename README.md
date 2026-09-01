@@ -163,6 +163,19 @@ run-full-stack-scan-pipeline.ts`) — the existing code scan pipeline,
   job carries GitHub context and the App is actually configured. A
   reporting failure never fails the scan itself. See
   [docs/github-app.md](docs/github-app.md#github-check-runs-scan-status-reporting).
+- ✅ GitHub webhook receiver + scan queue producer
+  (`apps/api/src/github/`, `packages/queue`) — closes the gap the Check
+  Run bullet above explicitly flagged: `POST /github/webhook` now really
+  verifies signatures, dedupes deliveries (Redis-backed), syncs
+  `Installation`/`Repository` rows, and enqueues real scan jobs on
+  `push`/`pull_request` with an authenticated clone URL. Caught and fixed
+  two real, previously-latent bugs along the way: a BullMQ queue name
+  containing `:` (rejected outright — never before constructed against a
+  real Queue), and confirmed by actually booting compiled `apps/api`
+  under Node 22 that `@octokit/app`'s ESM-only build loads fine (ruling
+  out a suspected crash before it shipped). Honestly documents what's
+  still missing — no org claim/invite flow, no branch filtering. See
+  [docs/github-webhook-receiver.md](docs/github-webhook-receiver.md).
 - ✅ `packages/api-security-engine` — OpenAPI (JSON/YAML) import, an
   endpoint inventory cross-referencing declared vs. observed endpoints
   (reusing `source-runtime-correlation`'s matcher, not a second

@@ -40,6 +40,47 @@ Status legend: `not started` · `in progress` · `done`
 | 29    | Scan result persistence (fixed a real pre-existing gap)                                     | done — see notes below                                                   |
 | 30    | Hosted-mode config interlocks (SENTINEL_HOSTED_MODE)                                        | done — see notes below                                                   |
 | 31    | GitHub Check Run reporting wired into the scan worker                                       | done — see notes below                                                   |
+| 32    | GitHub webhook receiver + scan queue producer                                               | done — see notes below                                                   |
+
+## Phase 32 — GitHub webhook receiver + scan queue producer
+
+Full writeup in [docs/github-webhook-receiver.md](github-webhook-receiver.md).
+Phase 31's own writeup explicitly noted the gap this phase closes: nothing
+in `apps/api` received a GitHub webhook or enqueued a scan job, so no job
+anywhere in the codebase ever got `github` populated end to end from a
+real event. `apps/worker`'s consumer side has existed since Phase 13 with
+no producer until now.
+
+**Built**: a new `@sayan-sentinel/queue` package (`SCAN_QUEUE_NAME`,
+`ScanJobData`, `parseRedisConnection`, `createScanQueue`) extracted from
+`apps/worker` so `apps/api` and `apps/worker` share one source of truth
+instead of duplicating the type and connection-parsing logic. A real
+`POST /github/webhook` endpoint in `apps/api/src/github/` — HMAC signature
+verification, Redis-backed delivery dedup (`RedisDeliveryStore`, new in
+`@sayan-sentinel/github`), and handlers for `installation`,
+`installation_repositories`, `push`, and `pull_request` that sync
+`Installation`/`Repository` rows and enqueue real scan jobs with an
+authenticated clone URL (`GitHubAppClient.createInstallationAccessToken`,
+also new this phase).
+
+**Two real, previously-latent bugs were caught and fixed while building
+this**: `SCAN_QUEUE_NAME` contained a `:`, which BullMQ rejects outright
+(`Queue name cannot contain :`) — neither `createScanQueue` nor
+`startScanWorker` had ever been constructed against a real BullMQ Queue
+before the new `scan-queue.test.ts`, so this would have crashed the
+instant either one first touched a real Redis. Separately, confirmed by
+actually booting the compiled `apps/api` under real Node (not just
+typecheck) that `@sayan-sentinel/github`'s ESM-only `@octokit/app`
+dependency loads fine under Node 22+'s native `require(esm)` support —
+ruling out a suspected production crash before it shipped.
+
+**Explicitly deferred** (see the doc for the full list): no claim/invite
+flow for a newly auto-provisioned `Organization` (it has zero `Membership`
+rows — there's no authenticated user in a webhook request to attach one
+to), `installation.deleted` marks the installation suspended rather than
+deleting historical data, `repositories_removed` is a no-op, no branch
+filtering, `Scan.pullRequestNumber` still isn't populated, and no
+graceful shutdown for the new Redis/queue connections in `apps/api`.
 
 ## Phase 31 — GitHub Check Run reporting
 

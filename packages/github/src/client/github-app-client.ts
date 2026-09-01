@@ -129,6 +129,21 @@ export class GitHubAppClient {
   }
 
   /** Creates a branch pointing at `fromSha` — the first step of the approved-patch-PR workflow (Section 27). */
+  /**
+   * Returns a raw installation access token — used to build an
+   * authenticated git clone URL (`https://x-access-token:<token>@github.com/...`)
+   * for cloning private repositories, since `cloneRepositoryAtCommit`
+   * shells out to the real `git` binary and has no way to use an Octokit
+   * instance's request-level auth. GitHub installation tokens expire after
+   * one hour, so callers should fetch a fresh one per scan rather than
+   * caching it.
+   */
+  async createInstallationAccessToken(installationId: number): Promise<string> {
+    const octokit = await this.getInstallationOctokit(installationId);
+    const auth = (await octokit.auth()) as { token: string };
+    return auth.token;
+  }
+
   async createBranch(
     installationId: number,
     owner: string,

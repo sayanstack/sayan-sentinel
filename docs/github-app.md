@@ -35,7 +35,10 @@ order.
 
 Every webhook delivery is checked against `isDuplicateDelivery()`, keyed
 on GitHub's per-delivery-attempt id, so a retried delivery (GitHub retries
-on timeout/5xx) doesn't trigger a duplicate scan or action.
+on timeout/5xx) doesn't trigger a duplicate scan or action. `apps/api`'s
+real receiver backs this with `RedisDeliveryStore` (Phase 32), not just
+the in-memory reference implementation, so it survives a process restart
+and works across multiple API instances.
 
 ## `GitHubAppClient`
 
@@ -72,12 +75,11 @@ installationId, owner, repo }` field on `ScanJobData` **and** the worker
   network error) is caught and swallowed inside `processScanJob` — a
   failed status post must never fail an otherwise-successful scan.
 
-**Not built yet**: nothing in `apps/api` currently receives a GitHub
-webhook and enqueues a scan job with `github` populated — there is no
-webhook route and no queue-producer code under `apps/api/src` at all.
-This phase makes the worker capable of reporting a Check Run once a job
-carries that field; wiring an actual `push`/`pull_request` webhook
-receiver through to the queue is separate, still-`not started` work.
+**Update (Phase 32)**: the gap noted above is closed — `apps/api` now has
+a real webhook receiver (`POST /github/webhook`) that verifies signatures,
+dedupes deliveries, syncs `Installation`/`Repository` rows, and enqueues
+scan jobs (with `github` populated) on `push`/`pull_request` events. Full
+writeup: [docs/github-webhook-receiver.md](github-webhook-receiver.md).
 
 ## Setting up a real GitHub App (what you need to supply)
 

@@ -59,12 +59,21 @@ importers:
       '@sayan-sentinel/findings':
         specifier: workspace:*
         version: link:../../packages/findings
+      '@sayan-sentinel/github':
+        specifier: workspace:*
+        version: link:../../packages/github
       '@sayan-sentinel/hexstrike-adapter':
         specifier: workspace:*
         version: link:../../packages/hexstrike-adapter
+      '@sayan-sentinel/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
       '@sayan-sentinel/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      bullmq:
+        specifier: ^6.3.3
+        version: 6.3.3(ioredis@6.0.0)
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -190,6 +199,9 @@ importers:
       '@sayan-sentinel/policy-engine':
         specifier: workspace:*
         version: link:../../packages/policy-engine
+      '@sayan-sentinel/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
       '@sayan-sentinel/rules-engine':
         specifier: workspace:*
         version: link:../../packages/rules-engine
@@ -437,6 +449,28 @@ importers:
       '@sayan-sentinel/shared':
         specifier: workspace:*
         version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      rimraf:
+        specifier: ^6.0.0
+        version: 6.1.3
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.1)(lightningcss@1.32.0)
+
+  packages/queue:
+    dependencies:
+      '@sayan-sentinel/web-security-engine':
+        specifier: workspace:*
+        version: link:../web-security-engine
+      bullmq:
+        specifier: ^6.3.3
+        version: 6.3.3(ioredis@6.0.0)
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

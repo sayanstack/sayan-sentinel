@@ -24,7 +24,7 @@ import type {
 import type { ScanPipelineDependencies } from "../pipeline/types";
 import { persistScanResult } from "../persistence/persist-scan-result";
 import { buildCheckRunSummary } from "../github/build-check-run-summary";
-import { SCAN_QUEUE_NAME, type ScanJobData } from "./queue-names";
+import { SCAN_QUEUE_NAME, type ScanJobData } from "@sayan-sentinel/queue";
 
 function buildGitHubAppClient(config: SentinelConfig): GitHubAppClient | null {
   const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, GITHUB_WEBHOOK_SECRET } = config.env;
@@ -65,7 +65,8 @@ function buildDependencies(config: SentinelConfig): FullStackScanDependencies {
 
 /**
  * Starts the real BullMQ consumer for the scan queue. Requires a
- * reachable Redis — see the honesty note in scan-queue.ts; this has not
+ * reachable Redis — see the honesty note in @sayan-sentinel/queue's
+ * scan-queue.ts; this has not
  * been run against a live queue in this environment. Every job runs
  * through `runFullStackScanPipeline` — an ordinary code scan and a Full
  * Stack Scan are the same code path, distinguished only by whether

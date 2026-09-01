@@ -1,6 +1,14 @@
 import type { SafeHttpClientOptions } from "@sayan-sentinel/web-security-engine";
 
-export const SCAN_QUEUE_NAME = "sentinel:scan";
+/**
+ * BullMQ rejects `:` in queue names (it uses the character internally as a
+ * Redis key separator) — this was originally `"sentinel:scan"` and would
+ * have thrown `Queue name cannot contain :` the moment either
+ * `createScanQueue` or `startScanWorker` first ran against a real Redis.
+ * Neither had ever been exercised against one before the `scan-queue.test.ts`
+ * added alongside this fix caught it.
+ */
+export const SCAN_QUEUE_NAME = "sentinel-scan";
 
 export interface ScanJobData {
   repositoryUrl: string;
