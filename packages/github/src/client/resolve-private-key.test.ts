@@ -16,6 +16,24 @@ describe("resolvePrivateKey", () => {
     expect(result).toBe("-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----");
   });
 
+  it("normalizes \\r\\n line endings to \\n", () => {
+    const key = "-----BEGIN RSA PRIVATE KEY-----\r\nabc\r\n-----END RSA PRIVATE KEY-----";
+    const result = resolvePrivateKey({ inline: key });
+    expect(result).toBe("-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----");
+  });
+
+  it("strips a wrapping quote character left over from copying out of another value", () => {
+    const key = '"-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----"';
+    const result = resolvePrivateKey({ inline: key });
+    expect(result).toBe("-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----");
+  });
+
+  it("trims stray leading/trailing whitespace from the paste", () => {
+    const key = "\n  -----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----  \n";
+    const result = resolvePrivateKey({ inline: key });
+    expect(result).toBe("-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----");
+  });
+
   it("prefers the inline key over a path when both are given", () => {
     const result = resolvePrivateKey({ inline: "inline-key", path: "/some/path.pem" });
     expect(result).toBe("inline-key");
