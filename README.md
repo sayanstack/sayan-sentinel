@@ -88,12 +88,19 @@ This repository is being built in public, phase by phase, tracked in
   scanner/AI failures degrading gracefully rather than aborting the scan.
   The BullMQ queue wiring is genuine but unexercised against a live Redis
   (none available in this environment) — noted plainly, not glossed over.
-- ✅ `examples/vulnerable-demo-app` — a small, intentionally vulnerable
-  fixture (broken object authorization, open redirect, path traversal,
-  `eval()` on user input, a SQL-injection-shaped query, a fabricated
-  hard-coded secret, and a pinned known-vulnerable dependency), verified
-  by an integration test that runs the real ingestion + AST pipeline
-  against it on disk.
+- ✅ "Sentinel Lab" (`examples/vulnerable-demo-app`) — expanded from 7 to
+  18 intentional, CWE-tagged vulnerabilities spanning source-code issues
+  (a second BOLA instance, mass assignment, SSRF, command injection,
+  broken JWT verification, reflected XSS, ...) and running-application
+  issues (insecure CORS, an insecure cookie, verbose error disclosure),
+  so it's a real target for both the rules engine and the Web Security
+  Engine/Full Stack Scan, not just static analysis. Verified by actually
+  running scans against it (7 real findings across 5 rule categories, a
+  real CORS finding from a live instance, every route smoke-tested with
+  `curl`) — which found and fixed a real gap in the rules engine's own
+  taint propagation (`||`/`??` weren't recognized, silently defeating
+  every taint-sink rule for the extremely common `req.query.x || ""`
+  pattern). See [docs/sentinel-lab.md](docs/sentinel-lab.md).
 - ✅ Docker (`apps/api`/`apps/worker` Dockerfiles + `docker-compose.yml`,
   unbuilt here — no Docker engine installed), CI (`.github/workflows/ci.yml`),
   and the full [documentation set](#documentation).
@@ -231,10 +238,10 @@ may explain a finding afterward; it never discovers one for these rules.
 Real CLI output, run against this repository (`sentinel scan .`):
 
 ```
-Sentinel Rules Engine — 8 rule(s) executed in 160ms
+Sentinel Rules Engine — 8 rule(s) executed in 256ms
 
 [CRITICAL] SENTINEL-INJ-002 — Potential OS Command Injection
-  examples/vulnerable-demo-app/src/app.js:74 (POST /preview-template)
+  examples/vulnerable-demo-app/src/app.js:133 (POST /preview-template)
   Confidence: medium (60/100)
   Detected: untrusted input from request body reaches eval(...) with no neutralizing transform observed. Observed: the command string is constructed from this value.
 
@@ -243,21 +250,26 @@ Sentinel Rules Engine — 8 rule(s) executed in 160ms
   Confidence: high (85/100)
   Detected: user-controlled resource identifier reaches prisma.account.findUnique(...) filtered only by `where.id`. Observed: no ownership/tenant predicate in the query, no authorization guard dominating the lookup. No observable control found before the result reaches the response.
 
-Summary: 4 finding(s) — critical: 1, high: 3, medium: 0, low/info: 0
+Summary: 10 finding(s) — critical: 2, high: 8, medium: 0, low/info: 0
 ```
 
-(Two more `SENTINEL-AUTHZ-001` findings, omitted above for length, are the
-same rule firing on the package's own adversarial test fixtures —
-`adversarial-renamed-and-validated.ts` and `adversarial-service-layer.ts`
-— confirming the taint engine correctly follows variable renaming,
-format-validator chaining, and one hop of interprocedural service-layer
-resolution. Full, unedited output: `sentinel scan . --format table`.)
+(9 more findings, omitted above for length, are the same handful of rules
+firing across the rest of the package's own adversarial test fixtures and
+[Sentinel Lab](docs/sentinel-lab.md)'s 18 intentional vulnerabilities —
+`SENTINEL-INJ-002`/`FS-001`/`SSRF-001`/`AUTHZ-004`/`DATA-001` each catch a
+real, verified issue there (see docs/sentinel-lab.md's detection table
+for the full breakdown, including which categories aren't caught yet and
+why). Full, unedited output: `sentinel scan . --format table`.)
 
-(The 3 "high" findings in that run are the Rules Engine's own
-intentionally-vulnerable test fixtures under
-`packages/rules-engine/src/testing/fixtures/` — correctly flagged, not a
-defect. Excluding fixtures and the intentionally vulnerable demo app, the
-scan of this repository's actual product code is clean.)
+(Self-scanning this repository during that phase's work also caught one
+real `SENTINEL-AUTHZ-001` finding in `apps/api/src/repositories/
+repositories.service.ts` — reviewed, confirmed a false positive
+[the query's `repositoryId` is already tenant-checked by the calling
+method before this private helper ever runs], and suppressed with a
+`// sentinel-ignore SENTINEL-AUTHZ-001 -- ...` comment carrying that
+justification, per this package's suppression mechanism — not silently
+ignored. Excluding fixtures and Sentinel Lab, this repository's actual
+product code has zero _unsuppressed_ findings.)
 
 - ✅ AST Analysis — real TypeScript Compiler API parsing via `ts-morph`,
   not regex

@@ -23,10 +23,20 @@ describe("buildCodeGraphFromDirectory against the bundled demo fixture", () => {
     expect(routes).toEqual(
       expect.arrayContaining([
         "GET /api/orders/:id",
+        "GET /api/invoices/:id",
+        "PATCH /api/users/:id",
         "GET /redirect",
         "GET /files/:name",
         "POST /preview-template",
+        "GET /search",
+        "GET /fetch-url",
+        "POST /ping",
         "GET /api/lookup",
+        "POST /api/mongo-login",
+        "GET /api/admin",
+        "POST /api/admin/reset",
+        "POST /login",
+        "GET /crash",
       ]),
     );
 

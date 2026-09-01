@@ -11,6 +11,22 @@ import {
   type TransformKind,
 } from "./transforms";
 
+/**
+ * Binary operators taint propagates through: `+` (string concatenation —
+ * either operand can carry the tainted value into the result), and `||`/
+ * `??` (a default-value fallback like `req.query.url || ""` or
+ * `req.query.url ?? ""` is still tainted whenever the left-hand side is
+ * actually present — the fallback only matters when it's absent). Every
+ * other binary operator (comparisons, `&&`, arithmetic other than `+`)
+ * does not carry a tainted operand's *value* into its result and is
+ * deliberately excluded.
+ */
+const BINARY_TAINT_PROPAGATING_TOKENS = new Set<SyntaxKind>([
+  SyntaxKind.PlusToken,
+  SyntaxKind.BarBarToken,
+  SyntaxKind.QuestionQuestionToken,
+]);
+
 export interface TaintOrigin {
   source: SourceMatch;
   filePath: string;
@@ -120,7 +136,7 @@ class FunctionAnalyzer {
 
     if (
       Node.isBinaryExpression(expr) &&
-      expr.getOperatorToken().getKind() === SyntaxKind.PlusToken
+      BINARY_TAINT_PROPAGATING_TOKENS.has(expr.getOperatorToken().getKind())
     ) {
       return (
         this.resolveExpressionTaint(expr.getLeft(), ctx, depth) ??

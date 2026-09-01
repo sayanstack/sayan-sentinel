@@ -44,6 +44,53 @@ Status legend: `not started` · `in progress` · `done`
 | 33    | Dashboard: real Scans & Findings pages                                                      | done — see notes below                                                   |
 | 34    | Application Graph persistence + real Code Graph page                                        | done — see notes below                                                   |
 | 35    | Attack Surface persistence + real Attack Surface page                                       | done — see notes below                                                   |
+| 36    | Sentinel Lab expansion (7 → 18 vulns) + a real taint-engine bug fix                         | done — see notes below                                                   |
+
+## Phase 36 — Sentinel Lab expansion + taint-engine fix
+
+Full writeup in [docs/sentinel-lab.md](sentinel-lab.md). Closes the
+"Sentinel Lab (genişletilmiş demo)" half of the user's final remaining
+list item; [Live Demo hosting](sentinel-lab.md#live-demo-hosting) is
+explicitly and honestly documented as not started — this sandbox has no
+cloud account, domain, or deployment credentials to actually host
+anything publicly, and the docs say so plainly rather than fabricating a
+URL.
+
+**Built**: `examples/vulnerable-demo-app` ("Sentinel Lab") expanded from 7
+to 18 intentional, CWE-tagged vulnerabilities, now spanning both
+source-code issues (a second BOLA instance, mass assignment, a
+client-trusted role claim, SSRF, command injection, broken JWT
+verification, reflected XSS, NoSQL-injection-shaped code) and
+running-application issues (insecure CORS, a cookie missing
+`Secure`/`HttpOnly`, verbose error disclosure) specifically so the app is
+also a real target for the Web Security Engine / Full Stack Scan, not
+just static analysis. A new `Dockerfile` and `docker-compose.yml` service
+entry let it run alongside `api`/`worker` on the compose network.
+
+**Two real, previously-undiscovered rules-engine bugs were found and
+handled while building this — by actually running scans, not by reading
+the rule code and assuming it worked**: `resolveExpressionTaint` in
+`packages/rules-engine/src/analysis/taint.ts` didn't propagate taint
+through `||`/`??` (only `+`), so the extremely common
+`req.query.url || ""` default-value pattern silently defeated every
+taint-sink rule (SSRF-001, INJ-002, FS-001, ...) — **fixed**, with 4 new
+tests, all 33 pre-existing rules-engine tests still passing unmodified. A
+second issue — a chained `.on("error", ...)` immediately after a sink
+call suppressing unrelated later analysis in the same file — was
+reproduced and worked around in the fixture rather than deep-diving the
+CFG internals mid-session, and is flagged in the docs for future
+investigation rather than silently left undiscovered.
+
+**Verified, not asserted**: every finding claimed in
+docs/sentinel-lab.md's detection tables was produced by actually running
+`RuleEngine.scanSources` against the real fixture file and actually
+running `scanUrl()` against a live instance of it — 7 real findings
+across 5 rule categories from the rules engine, plus a real CORS finding
+from the Web Security Engine. Every route in the vulnerability table was
+also smoke-tested with real `curl` requests confirming it's genuinely
+exploitable (cross-account BOLA reads, a mass-assignment privilege
+escalation, a forged-JWT bypass, live SSRF, and more) — not merely
+present as dead code.
 
 ## Phase 35 — Attack Surface persistence + real Attack Surface page
 

@@ -87,6 +87,19 @@ services:
       DATABASE_URL: postgresql://sentinel:sentinel@postgres:5432/sentinel
       REDIS_URL: redis://redis:6379
 
+  # "Sentinel Lab" — the intentionally vulnerable fixture
+  # (examples/vulnerable-demo-app), included here so `api`/`worker` can
+  # reach it by service name (`http://sentinel-lab:4100`) for a Full Stack
+  # Scan / Target Authorization demo without any host-level setup. See
+  # docs/sentinel-lab.md. Optional — omit this service (`docker compose up
+  # postgres redis minio api worker`) if you don't want it running.
+  sentinel-lab:
+    build:
+      context: examples/vulnerable-demo-app
+    restart: unless-stopped
+    ports:
+      - "4100:4100"
+
 volumes:
   sentinel_postgres_data:
   sentinel_redis_data:

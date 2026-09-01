@@ -116,6 +116,7 @@ export class RepositoriesService {
   }
 
   private findLatestCompletedScan(repositoryId: string) {
+    // sentinel-ignore SENTINEL-AUTHZ-001 -- private helper, never called with a repositoryId the caller hasn't already verified: both call sites (getLatestGraphForUser, getLatestAttackSurfaceForUser) call getRepositoryForUser(userId, repositoryId) first and return early on null, so repositoryId is already proven to belong to an organization userId can access by the time this query runs.
     return prisma.scan.findFirst({
       where: { repositoryId, status: "COMPLETED" },
       orderBy: { createdAt: "desc" },
