@@ -18,6 +18,10 @@ WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
+# See apps/api/Dockerfile's comment on this line — turbo prune doesn't
+# carry the root tsconfig every package extends, confirmed by a real
+# failed build, not guessed at.
+COPY tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo run build --filter=@sayan-sentinel/worker...
 
 FROM base AS runner

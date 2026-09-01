@@ -24,6 +24,12 @@ WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
+# `turbo prune --docker` traces the package.json/import dependency graph,
+# not tsconfig `extends` targets — the root tsconfig every package extends
+# doesn't survive the prune on its own. Verified by an actual failed build
+# (`tsc` error TS5083: Cannot read file '/app/tsconfig.base.json') the
+# first time this Dockerfile was really built, not guessed at.
+COPY tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo run build --filter=@sayan-sentinel/api...
 
 FROM base AS runner
