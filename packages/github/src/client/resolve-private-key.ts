@@ -25,13 +25,22 @@ export interface PrivateKeySource {
  *    editor);
  *  - a leading/trailing wrapping quote character (pasting a value that
  *    was itself copied out of a JSON blob or another env-var UI);
- *  - stray leading/trailing whitespace or blank lines from the copy.
+ *  - stray leading/trailing whitespace or blank lines from the copy;
+ *  - missing `-----BEGIN/END-----` marker lines entirely — confirmed
+ *    against a real deployment via `validatePrivateKey`'s shape summary
+ *    (`startsWithBegin=false`, body only): a copy that selected only the
+ *    base64 body of the downloaded `.pem` file, not the header/footer
+ *    lines around it. Re-wrapped with the exact markers GitHub always
+ *    uses for App private keys (PKCS#1 RSA) — this function only ever
+ *    handles a GitHub App key, never an arbitrary one, so that assumption
+ *    is safe here specifically.
  */
 export function resolvePrivateKey(source: PrivateKeySource): string | null {
   if (source.inline) {
     const unwrapped = source.inline.trim().replace(/^['"]|['"]$/g, "");
     const normalized = unwrapped.replace(/\r\n/g, "\n").trim();
-    return normalized.includes("\n") ? normalized : normalized.replace(/\\n/g, "\n");
+    const withNewlines = normalized.includes("\n") ? normalized : normalized.replace(/\\n/g, "\n");
+    return ensurePemMarkers(withNewlines);
   }
   if (source.path) {
     try {
@@ -41,6 +50,16 @@ export function resolvePrivateKey(source: PrivateKeySource): string | null {
     }
   }
   return null;
+}
+
+function ensurePemMarkers(key: string): string {
+  if (key.includes("-----BEGIN")) return key;
+  const body = key
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+  return `-----BEGIN RSA PRIVATE KEY-----\n${body}\n-----END RSA PRIVATE KEY-----`;
 }
 
 export interface PrivateKeyDiagnostics {

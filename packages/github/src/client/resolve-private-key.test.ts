@@ -36,8 +36,9 @@ describe("resolvePrivateKey", () => {
   });
 
   it("prefers the inline key over a path when both are given", () => {
-    const result = resolvePrivateKey({ inline: "inline-key", path: "/some/path.pem" });
-    expect(result).toBe("inline-key");
+    const inlineKey = "-----BEGIN RSA PRIVATE KEY-----\ninline\n-----END RSA PRIVATE KEY-----";
+    const result = resolvePrivateKey({ inline: inlineKey, path: "/some/path.pem" });
+    expect(result).toBe(inlineKey);
     expect(fs.readFileSync).not.toHaveBeenCalled();
   });
 
@@ -55,6 +56,24 @@ describe("resolvePrivateKey", () => {
 
   it("returns null when neither an inline key nor a path is given", () => {
     expect(resolvePrivateKey({})).toBeNull();
+  });
+
+  it("re-wraps a real key whose BEGIN/END marker lines were dropped, leaving only the base64 body", () => {
+    const { privateKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: "pkcs1", format: "pem" },
+      publicKeyEncoding: { type: "pkcs1", format: "pem" },
+    });
+    const bodyOnly = privateKey
+      .split("\n")
+      .filter((line) => !line.startsWith("-----"))
+      .join("\n")
+      .trim();
+
+    const result = resolvePrivateKey({ inline: bodyOnly });
+
+    expect(result).not.toBeNull();
+    expect(validatePrivateKey(result!).valid).toBe(true);
   });
 });
 
