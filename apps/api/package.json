@@ -24,6 +24,7 @@
     "@sayan-sentinel/findings": "workspace:*",
     "@sayan-sentinel/github": "workspace:*",
     "@sayan-sentinel/queue": "workspace:*",
+    "@sayan-sentinel/policy-engine": "workspace:*",
     "@sayan-sentinel/security-core": "workspace:*",
     "@sayan-sentinel/shared": "workspace:*",
     "@sayan-sentinel/web-security-engine": "workspace:*",

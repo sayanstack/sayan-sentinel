@@ -329,3 +329,47 @@ export interface FindingSummary {
 export function listFindings(): Promise<FindingSummary[]> {
   return apiFetch<FindingSummary[]>("/findings");
 }
+
+export interface ActivityEvent {
+  id: string;
+  organizationId: string;
+  actorUserId: string | null;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+  result: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export function listActivity(): Promise<ActivityEvent[]> {
+  return apiFetch<ActivityEvent[]>("/activity");
+}
+
+export type PullRequestStatus = "OPEN" | "MERGED" | "CLOSED";
+
+export interface PullRequestSummary {
+  id: string;
+  repositoryId: string;
+  githubPrNumber: number;
+  branchName: string;
+  status: PullRequestStatus;
+  createdAt: string;
+  repository: { id: string; owner: string; name: string };
+}
+
+export function listPullRequests(): Promise<PullRequestSummary[]> {
+  return apiFetch<PullRequestSummary[]>("/pull-requests");
+}
+
+export interface PolicyRule {
+  id: string;
+  enabled: boolean;
+  type: string;
+  minSeverity?: string;
+  categories?: string[];
+}
+
+export function listPolicies(): Promise<PolicyRule[]> {
+  return apiFetch<PolicyRule[]>("/policies");
+}

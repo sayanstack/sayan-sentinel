@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import type { GithubAppStatus } from "@/lib/api";
+import { GithubConnectButton } from "./github-connect-button";
 import { Sidebar } from "./sidebar";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  githubStatus,
+}: {
+  children: ReactNode;
+  githubStatus: GithubAppStatus;
+}) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
@@ -12,15 +20,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         <span className="bg-gradient-to-r from-accent-cyan via-accent-blue to-accent-violet bg-clip-text text-base font-semibold text-transparent">
           Sayan Sentinel
         </span>
-        <button
-          type="button"
-          onClick={() => setMobileNavOpen(true)}
-          aria-label="Open navigation menu"
-          className="rounded-md p-2 text-text-muted hover:bg-surface-raised hover:text-text focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:outline-none"
-        >
-          <MenuIcon />
-        </button>
+        <div className="flex items-center gap-2">
+          <GithubConnectButton status={githubStatus} />
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation menu"
+            className="rounded-md p-2 text-text-muted hover:bg-surface-raised hover:text-text focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:outline-none"
+          >
+            <MenuIcon />
+          </button>
+        </div>
       </div>
+
+      <GithubConnectButton
+        status={githubStatus}
+        className="fixed top-4 right-6 z-40 hidden md:inline-flex"
+      />
 
       {mobileNavOpen && (
         <button

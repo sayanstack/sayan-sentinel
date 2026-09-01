@@ -62,6 +62,9 @@ importers:
       '@sayan-sentinel/github':
         specifier: workspace:*
         version: link:../../packages/github
+      '@sayan-sentinel/policy-engine':
+        specifier: workspace:*
+        version: link:../../packages/policy-engine
       '@sayan-sentinel/queue':
         specifier: workspace:*
         version: link:../../packages/queue
