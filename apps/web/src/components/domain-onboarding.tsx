@@ -10,6 +10,7 @@ import {
   type QuickScanResult,
   type TargetAuthorizationSummary,
 } from "@/lib/api";
+import { providerDashboardUrl } from "@/lib/provider-dashboard-urls";
 
 type Step = "input" | "creating" | "verify" | "verifying" | "scanning" | "done";
 
@@ -249,6 +250,23 @@ export function DomainOnboarding({
                 )}
               </div>
             )}
+
+            {(() => {
+              const dashboardUrl = providerDashboardUrl(detection?.nameserverProvider ?? null);
+              const providerName = detection?.nameserverProvider;
+              return (
+                dashboardUrl && (
+                  <a
+                    href={dashboardUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-accent-cyan/40 bg-accent-cyan/10 px-3 py-1.5 text-sm font-medium text-accent-cyan transition hover:bg-accent-cyan/20"
+                  >
+                    Open {providerName} dashboard →
+                  </a>
+                )
+              );
+            })()}
 
             <div className="space-y-2 rounded-xl bg-bg/60 p-4">
               <p className="text-sm text-text-muted">
