@@ -13,13 +13,27 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
-  // Always includes localhost:3000 (the web app's own default dev port)
-  // alongside the deployed frontend's origin, so `next dev` against a
-  // shared/hosted API — the setup this whole `x-demo-*` header scheme is
-  // built for — isn't blocked by CORS during local development.
-  const allowedOrigins = Array.from(
-    new Set([process.env.APP_URL, "http://localhost:3000"].filter((v): v is string => !!v)),
-  );
+  // Real incident: the Vercel deployment's custom domain
+  // (sentinel.sayanstack.com) was connected after APP_URL had already
+  // been set to the auto-generated *.vercel.app URL, so every browser
+  // request from the custom domain was silently CORS-blocked (a blocked
+  // preflight throws in fetch, which apps/web's apiFetch reports as
+  // "Could not reach the Sentinel API" — indistinguishable from the API
+  // actually being down without checking response headers directly).
+  // APP_URL can be a comma-separated list for exactly this reason; these
+  // three are also always allowed regardless of what's configured, so a
+  // future domain change here can't silently reintroduce the same bug —
+  // update this list itself when a new one is added.
+  const knownAppUrls = [
+    "https://sentinel.sayanstack.com",
+    "https://sayan-sentinel-web-sayanstack.vercel.app",
+    "http://localhost:3000",
+  ];
+  const configuredUrls = (process.env.APP_URL ?? "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+  const allowedOrigins = Array.from(new Set([...configuredUrls, ...knownAppUrls]));
   app.enableCors({ origin: allowedOrigins, credentials: true });
   // `class-validator`/`class-transformer` DTOs (e.g. CreateTargetDto) are inert without this —
   // whitelist strips unknown properties, forbidNonWhitelisted rejects a request that sent any.
