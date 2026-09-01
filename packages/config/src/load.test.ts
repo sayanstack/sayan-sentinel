@@ -31,17 +31,26 @@ describe("loadConfig", () => {
     expect(withBoth.features.aiEnabled).toBe(true);
   });
 
-  it("enables the GitHub App only when id, private key path, and webhook secret are all present", () => {
+  it("enables the GitHub App only when id, a private key (path or inline), and webhook secret are all present", () => {
     const partial = loadConfig({ ...baseEnv, GITHUB_APP_ID: "123" });
     expect(partial.features.githubAppEnabled).toBe(false);
 
-    const complete = loadConfig({
+    const withPath = loadConfig({
       ...baseEnv,
       GITHUB_APP_ID: "123",
       GITHUB_APP_PRIVATE_KEY_PATH: "./secrets/key.pem",
       GITHUB_WEBHOOK_SECRET: "test-secret-not-real",
     });
-    expect(complete.features.githubAppEnabled).toBe(true);
+    expect(withPath.features.githubAppEnabled).toBe(true);
+
+    const withInlineKey = loadConfig({
+      ...baseEnv,
+      GITHUB_APP_ID: "123",
+      GITHUB_APP_PRIVATE_KEY:
+        "-----BEGIN RSA PRIVATE KEY-----\nnot-a-real-key\n-----END RSA PRIVATE KEY-----",
+      GITHUB_WEBHOOK_SECRET: "test-secret-not-real",
+    });
+    expect(withInlineKey.features.githubAppEnabled).toBe(true);
   });
 
   it("enables dynamic validation only when explicitly enabled AND a base URL is set", () => {

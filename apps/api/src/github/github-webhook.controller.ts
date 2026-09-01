@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Get,
   Inject,
   Post,
   Req,
@@ -30,6 +31,20 @@ export class GithubWebhookController {
     @Inject(SENTINEL_CONFIG) private readonly config: SentinelConfig,
     @Inject(WEBHOOK_DELIVERY_STORE) private readonly deliveryStore: DeliveryStore,
   ) {}
+
+  /**
+   * Lets the frontend render either "Install Sentinel on GitHub" (once a
+   * real App exists) or the one-click App-creation flow (until it does),
+   * without hard-coding either state client-side. `slug` is public-safe —
+   * it's the same string that appears in the App's install URL.
+   */
+  @Get("app-status")
+  appStatus(): { configured: boolean; slug: string | null } {
+    return {
+      configured: this.config.features.githubAppEnabled,
+      slug: this.config.env.GITHUB_APP_SLUG ?? null,
+    };
+  }
 
   @Post("webhook")
   async handleWebhook(@Req() req: RawBodyRequest<Request>): Promise<WebhookHandlingResult> {

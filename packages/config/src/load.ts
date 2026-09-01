@@ -28,7 +28,7 @@ function deriveFeatureFlags(env: Env): FeatureFlags {
 
   const githubAppEnabled = !!(
     env.GITHUB_APP_ID &&
-    env.GITHUB_APP_PRIVATE_KEY_PATH &&
+    (env.GITHUB_APP_PRIVATE_KEY || env.GITHUB_APP_PRIVATE_KEY_PATH) &&
     env.GITHUB_WEBHOOK_SECRET
   );
 

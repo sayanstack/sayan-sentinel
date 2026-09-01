@@ -34,7 +34,10 @@ const baseEnvSchema = z.object({
   GITHUB_APP_SLUG: z.string().optional(),
   GITHUB_APP_CLIENT_ID: z.string().optional(),
   GITHUB_APP_CLIENT_SECRET: z.string().optional(),
+  /** A file path to the App's private key — the original option, still supported for anyone who mounts a real `.pem` file. */
   GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
+  /** The PEM content itself, inline — for hosts like Railway with no simple way to mount a standalone secret file. Takes priority over `GITHUB_APP_PRIVATE_KEY_PATH` when both are set. */
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
 
   AI_PROVIDER: z.enum(["none", "anthropic", "openai", "local"]).default("none"),

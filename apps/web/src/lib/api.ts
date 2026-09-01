@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 /**
  * Placeholder identity until real session-based auth exists (see
@@ -77,6 +77,15 @@ export interface RepositorySummary {
 
 export function listRepositories(): Promise<RepositorySummary[]> {
   return apiFetch<RepositorySummary[]>("/repositories");
+}
+
+export interface GithubAppStatus {
+  configured: boolean;
+  slug: string | null;
+}
+
+export function getGithubAppStatus(): Promise<GithubAppStatus> {
+  return apiFetch<GithubAppStatus>("/github/app-status");
 }
 
 export type GraphNodeKind =

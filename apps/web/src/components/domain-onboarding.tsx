@@ -154,7 +154,7 @@ export function DomainOnboarding({
                 No https:// needed — Sentinel tries both
               </span>
               <a
-                href="/repositories"
+                href="/integrations"
                 className="rounded-full border border-border px-3 py-1 transition hover:border-accent-cyan hover:text-text"
               >
                 Prefer to connect a GitHub repo instead? →

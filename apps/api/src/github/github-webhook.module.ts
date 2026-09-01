@@ -1,6 +1,6 @@
 import { Module, type Provider } from "@nestjs/common";
 import type { SentinelConfig } from "@sayan-sentinel/config";
-import { GitHubAppClient, RedisDeliveryStore } from "@sayan-sentinel/github";
+import { GitHubAppClient, RedisDeliveryStore, resolvePrivateKey } from "@sayan-sentinel/github";
 import { createScanQueue, parseRedisConnection } from "@sayan-sentinel/queue";
 import Redis from "ioredis";
 import { SENTINEL_CONFIG } from "../config/sentinel-config.constants";
@@ -13,15 +13,20 @@ const githubAppClientProvider: Provider = {
   inject: [SENTINEL_CONFIG],
   useFactory: (config: SentinelConfig): GitHubAppClient | null => {
     if (!config.features.githubAppEnabled) return null;
+    const privateKey = resolvePrivateKey({
+      inline: config.env.GITHUB_APP_PRIVATE_KEY,
+      path: config.env.GITHUB_APP_PRIVATE_KEY_PATH,
+    });
+    if (!privateKey) return null;
     try {
       return new GitHubAppClient({
         appId: config.env.GITHUB_APP_ID!,
-        privateKeyPath: config.env.GITHUB_APP_PRIVATE_KEY_PATH!,
+        privateKey,
         webhookSecret: config.env.GITHUB_WEBHOOK_SECRET!,
       });
     } catch {
-      // Env vars present but e.g. the private key file doesn't exist on
-      // disk — degrade to "not configured" rather than crashing the API.
+      // Env vars present but e.g. the key is malformed — degrade to
+      // "not configured" rather than crashing the API.
       return null;
     }
   },

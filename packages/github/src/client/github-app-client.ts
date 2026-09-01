@@ -1,4 +1,3 @@
-import * as fs from "node:fs";
 import { App } from "@octokit/app";
 import { Octokit as OctokitRest } from "@octokit/rest";
 
@@ -20,7 +19,8 @@ type RestResponse<T extends (...args: never[]) => unknown> = Awaited<ReturnType<
 
 export interface GitHubAppClientOptions {
   appId: string;
-  privateKeyPath: string;
+  /** The PEM content itself. Resolving this from a file path, an inline env var, or anywhere else is the caller's job — this class only ever deals in the key material. */
+  privateKey: string;
   webhookSecret: string;
 }
 
@@ -52,10 +52,9 @@ export class GitHubAppClient {
   private readonly app: App<{ Octokit: typeof OctokitRest }>;
 
   constructor(options: GitHubAppClientOptions) {
-    const privateKey = fs.readFileSync(options.privateKeyPath, "utf8");
     this.app = new App({
       appId: options.appId,
-      privateKey,
+      privateKey: options.privateKey,
       webhooks: { secret: options.webhookSecret },
       // The App package's default bundled Octokit only has .request() —
       // using @octokit/rest's class here gets the .rest.* convenience

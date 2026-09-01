@@ -59,9 +59,9 @@ function fakeRequest(body: string, headers: Record<string, string | undefined>) 
   } as never;
 }
 
-function fakeConfig(githubAppEnabled: boolean): SentinelConfig {
+function fakeConfig(githubAppEnabled: boolean, slug: string | null = null): SentinelConfig {
   return {
-    env: { GITHUB_WEBHOOK_SECRET: WEBHOOK_SECRET },
+    env: { GITHUB_WEBHOOK_SECRET: WEBHOOK_SECRET, GITHUB_APP_SLUG: slug ?? undefined },
     features: {
       githubAppEnabled,
       aiEnabled: false,
@@ -86,6 +86,28 @@ function fakeWebhookService(): GithubWebhookService {
     dispatch: jest.fn().mockResolvedValue({ status: "ok" }),
   } as unknown as GithubWebhookService;
 }
+
+describe("GithubWebhookController.appStatus", () => {
+  it("reports not configured, with no slug, when the GitHub App isn't set up", () => {
+    const controller = new GithubWebhookController(
+      fakeWebhookService(),
+      fakeConfig(false),
+      fakeDeliveryStore(),
+    );
+
+    expect(controller.appStatus()).toEqual({ configured: false, slug: null });
+  });
+
+  it("reports configured, with the App's slug, once it's set up", () => {
+    const controller = new GithubWebhookController(
+      fakeWebhookService(),
+      fakeConfig(true, "sayan-sentinel"),
+      fakeDeliveryStore(),
+    );
+
+    expect(controller.appStatus()).toEqual({ configured: true, slug: "sayan-sentinel" });
+  });
+});
 
 describe("GithubWebhookController.handleWebhook", () => {
   it("rejects with 503 when the GitHub App isn't configured", async () => {

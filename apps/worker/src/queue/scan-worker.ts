@@ -13,7 +13,7 @@ import {
 } from "@sayan-sentinel/security-engine";
 import { RulesEngineScannerAdapter } from "@sayan-sentinel/rules-engine";
 import { DEFAULT_POLICY_RULES } from "@sayan-sentinel/policy-engine";
-import { GitHubAppClient } from "@sayan-sentinel/github";
+import { GitHubAppClient, resolvePrivateKey } from "@sayan-sentinel/github";
 import type { ConnectionOptions, Job } from "bullmq";
 import { Worker } from "bullmq";
 import { runFullStackScanPipeline } from "../pipeline/run-full-stack-scan-pipeline";
@@ -27,11 +27,21 @@ import { buildCheckRunSummary } from "../github/build-check-run-summary";
 import { SCAN_QUEUE_NAME, type ScanJobData } from "@sayan-sentinel/queue";
 
 function buildGitHubAppClient(config: SentinelConfig): GitHubAppClient | null {
-  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, GITHUB_WEBHOOK_SECRET } = config.env;
-  if (!GITHUB_APP_ID || !GITHUB_APP_PRIVATE_KEY_PATH || !GITHUB_WEBHOOK_SECRET) return null;
+  const {
+    GITHUB_APP_ID,
+    GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_PRIVATE_KEY_PATH,
+    GITHUB_WEBHOOK_SECRET,
+  } = config.env;
+  if (!GITHUB_APP_ID || !GITHUB_WEBHOOK_SECRET) return null;
+  const privateKey = resolvePrivateKey({
+    inline: GITHUB_APP_PRIVATE_KEY,
+    path: GITHUB_APP_PRIVATE_KEY_PATH,
+  });
+  if (!privateKey) return null;
   return new GitHubAppClient({
     appId: GITHUB_APP_ID,
-    privateKeyPath: GITHUB_APP_PRIVATE_KEY_PATH,
+    privateKey,
     webhookSecret: GITHUB_WEBHOOK_SECRET,
   });
 }
