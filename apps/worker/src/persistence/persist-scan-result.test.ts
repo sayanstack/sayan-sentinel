@@ -9,6 +9,8 @@ vi.mock("@sayan-sentinel/database", () => ({
     scan: { create: vi.fn() },
     finding: { upsert: vi.fn() },
     findingEvidence: { deleteMany: vi.fn(), create: vi.fn() },
+    graphNode: { createMany: vi.fn() },
+    graphEdge: { createMany: vi.fn() },
   },
   Prisma: {},
 }));
@@ -30,11 +32,14 @@ function finding(overrides: Partial<CorrelatedFinding> = {}): CorrelatedFinding 
   };
 }
 
-function minimalResult(findings: CorrelatedFinding[]): FullStackScanResult {
+function minimalResult(
+  findings: CorrelatedFinding[],
+  graph: FullStackScanResult["code"]["graph"] = { nodes: [], edges: [] },
+): FullStackScanResult {
   return {
     code: {
       commitSha: "abc123",
-      graph: { nodes: [], edges: [] },
+      graph,
       scannerRuns: [],
       correlatedFindings: findings,
       securityScore: { score: 80, breakdown: [], openFindingCount: findings.length },
@@ -150,5 +155,64 @@ describe("persistScanResult", () => {
     });
 
     expect(prisma.finding.upsert).toHaveBeenCalledTimes(2);
+  });
+
+  it("bulk-persists the scan's graph nodes and edges tied to the new scan id", async () => {
+    (prisma.scan.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "scan-1" });
+
+    await persistScanResult({
+      repositoryId: "repo-1",
+      commitSha: "abc123",
+      trigger: "MANUAL",
+      result: minimalResult([], {
+        nodes: [
+          {
+            id: "node-1",
+            kind: "route",
+            filePath: "src/routes/users.ts",
+            name: "GET /users",
+            lineStart: 1,
+            lineEnd: 5,
+          },
+        ],
+        edges: [{ id: "edge-1", kind: "CALLS", fromNodeId: "node-1", toNodeId: "node-2" }],
+      }),
+    });
+
+    expect(prisma.graphNode.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          scanId: "scan-1",
+          externalId: "node-1",
+          kind: "route",
+          filePath: "src/routes/users.ts",
+          name: "GET /users",
+        }),
+      ],
+    });
+    expect(prisma.graphEdge.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          scanId: "scan-1",
+          kind: "CALLS",
+          fromNodeExternalId: "node-1",
+          toNodeExternalId: "node-2",
+        }),
+      ],
+    });
+  });
+
+  it("skips the createMany calls entirely for an empty graph, rather than calling them with an empty array", async () => {
+    (prisma.scan.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "scan-1" });
+
+    await persistScanResult({
+      repositoryId: "repo-1",
+      commitSha: "abc123",
+      trigger: "MANUAL",
+      result: minimalResult([]),
+    });
+
+    expect(prisma.graphNode.createMany).not.toHaveBeenCalled();
+    expect(prisma.graphEdge.createMany).not.toHaveBeenCalled();
   });
 });

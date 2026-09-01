@@ -42,6 +42,37 @@ Status legend: `not started` · `in progress` · `done`
 | 31    | GitHub Check Run reporting wired into the scan worker                                       | done — see notes below                                                   |
 | 32    | GitHub webhook receiver + scan queue producer                                               | done — see notes below                                                   |
 | 33    | Dashboard: real Scans & Findings pages                                                      | done — see notes below                                                   |
+| 34    | Application Graph persistence + real Code Graph page                                        | done — see notes below                                                   |
+
+## Phase 34 — Application Graph persistence + real Code Graph page
+
+Full writeup in [docs/application-graph.md](application-graph.md).
+`docs/full-stack-scan.md` explicitly flagged this blocker: `code.graph`
+was computed on every scan but only ever lived in memory. New `GraphNode`/
+`GraphEdge` Prisma models (scan-scoped, cascade-deleted, bulk-inserted via
+`createMany`) close the persistence gap; `GET /repositories/:id/graph`
+(latest completed scan, same IDOR-safe pattern as every other tenant
+-scoped endpoint) closes the read side; a real `/code-graph` page closes
+the last of this session's easiest `NotImplementedPage` wins.
+
+**Deliberately not an interactive visual graph**: the nav item's
+placeholder copy previously promised "Interactive architecture graph" —
+that copy was corrected rather than left inaccurate. What's built is a
+real, tenant-scoped, node-count-by-kind summary and a filterable table of
+up to 300 real nodes per repository's latest scan. A force-directed
+canvas is a legitimate future increment, not something faked here to
+match the old copy.
+
+Verified in-browser the same way as every other phase: booted the
+compiled `apps/api` against a fake `DATABASE_URL`/`REDIS_URL`, confirmed
+the page renders its real `ErrorBanner` with the API log showing the
+expected `PrismaClientInitializationError`, and confirmed no
+React/hydration console errors.
+
+**Explicitly deferred**: no edge visualization in the UI yet (edges are
+persisted and returned by the API, not yet rendered), no pagination
+beyond a hard 300-node render cap, and — as with every other data-backed
+feature this session — not verified against a real populated database.
 
 ## Phase 33 — Dashboard: real Scans & Findings pages
 

@@ -197,17 +197,21 @@ run-full-stack-scan-pipeline.ts`) — the existing code scan pipeline,
 - 🚧 `apps/web` — Next.js frontend. **Overview**, **Repositories**,
   **Web Targets** (create/verify/revoke a `TargetAuthorization`, with the
   DNS TXT/HTTP well-known challenge value surfaced inline), **Scans**
-  (real scan history — trigger, status, security score, duration), and
+  (real scan history — trigger, status, security score, duration),
   **Findings** (real correlated findings, severity-ranked correctly
   despite Prisma's enum sorting alphabetically — see
-  [docs/dashboard-scans-findings.md](docs/dashboard-scans-findings.md))
-  are real, connected to the API, and verified in a browser (including
-  honest error states when the API/database aren't reachable). The other
-  five nav sections render a clearly-labeled "Not implemented yet" page
-  rather than fake data or a dead link.
-- 🚧 Everything else — Application Graph/Attack Surface UI, session-based
-  auth — is under active development. Nothing not listed above should be
-  assumed to work yet.
+  [docs/dashboard-scans-findings.md](docs/dashboard-scans-findings.md)),
+  and **Code Graph** (the real per-scan Application Graph — node counts
+  by kind and a filterable node table, deliberately a table view rather
+  than an interactive canvas the old placeholder copy overclaimed — see
+  [docs/application-graph.md](docs/application-graph.md)) are real,
+  connected to the API, and verified in a browser (including honest error
+  states when the API/database aren't reachable). The other four nav
+  sections render a clearly-labeled "Not implemented yet" page rather
+  than fake data or a dead link.
+- 🚧 Everything else — an Attack Surface UI, session-based auth — is
+  under active development. Nothing not listed above should be assumed to
+  work yet.
 
 No fake scanners, no fabricated findings, no hard-coded security scores, no
 mock GitHub data will ever ship here — an unfinished feature is left in a

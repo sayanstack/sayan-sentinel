@@ -95,7 +95,46 @@ export async function persistScanResult(
     await upsertFinding(input.repositoryId, scan.id, finding);
   }
 
+  await persistGraph(scan.id, input.result.code.graph);
+
   return { scanId: scan.id };
+}
+
+/**
+ * Each scan's graph is a fresh, independent snapshot tied to `scanId` —
+ * unlike findings, nothing is upserted/deduplicated across scans, so a
+ * bulk `createMany` is sufficient and avoids an await-per-node/edge loop.
+ */
+async function persistGraph(
+  scanId: string,
+  graph: FullStackScanResult["code"]["graph"],
+): Promise<void> {
+  if (graph.nodes.length > 0) {
+    await prisma.graphNode.createMany({
+      data: graph.nodes.map((node) => ({
+        scanId,
+        externalId: node.id,
+        kind: node.kind,
+        filePath: node.filePath,
+        name: node.name,
+        lineStart: node.lineStart,
+        lineEnd: node.lineEnd,
+        metadata: node.metadata as Prisma.InputJsonValue | undefined,
+      })),
+    });
+  }
+
+  if (graph.edges.length > 0) {
+    await prisma.graphEdge.createMany({
+      data: graph.edges.map((edge) => ({
+        scanId,
+        kind: edge.kind,
+        fromNodeExternalId: edge.fromNodeId,
+        toNodeExternalId: edge.toNodeId,
+        metadata: edge.metadata as Prisma.InputJsonValue | undefined,
+      })),
+    });
+  }
 }
 
 async function upsertFinding(

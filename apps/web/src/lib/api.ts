@@ -79,6 +79,46 @@ export function listRepositories(): Promise<RepositorySummary[]> {
   return apiFetch<RepositorySummary[]>("/repositories");
 }
 
+export type GraphNodeKind =
+  | "file"
+  | "function"
+  | "class"
+  | "method"
+  | "route"
+  | "external_module"
+  | "env_var"
+  | "external_endpoint"
+  | "db_model"
+  | "guard";
+
+export interface GraphNodeSummary {
+  id: string;
+  externalId: string;
+  kind: GraphNodeKind;
+  filePath: string;
+  name: string;
+  lineStart: number;
+  lineEnd: number;
+}
+
+export interface GraphEdgeSummary {
+  id: string;
+  kind: string;
+  fromNodeExternalId: string;
+  toNodeExternalId: string;
+}
+
+export interface RepositoryGraph {
+  scanId: string | null;
+  scanCreatedAt: string | null;
+  nodes: GraphNodeSummary[];
+  edges: GraphEdgeSummary[];
+}
+
+export function getRepositoryGraph(repositoryId: string): Promise<RepositoryGraph> {
+  return apiFetch<RepositoryGraph>(`/repositories/${repositoryId}/graph`);
+}
+
 export interface Organization {
   id: string;
   name: string;

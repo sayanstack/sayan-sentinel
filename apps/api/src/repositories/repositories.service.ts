@@ -1,7 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { canAccessOrganization } from "@sayan-sentinel/auth";
-import { prisma } from "@sayan-sentinel/database";
+import { prisma, type GraphEdge, type GraphNode } from "@sayan-sentinel/database";
 import { MembershipLookupService } from "./membership-lookup.service";
+
+export interface RepositoryGraph {
+  scanId: string | null;
+  scanCreatedAt: Date | null;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
 
 @Injectable()
 export class RepositoriesService {
@@ -36,5 +43,37 @@ export class RepositoriesService {
       where: { organizationId: { in: organizationIds } },
       orderBy: { updatedAt: "desc" },
     });
+  }
+
+  /**
+   * The Application Graph for a repository's most recent completed scan.
+   * Each scan's graph is an independent snapshot (`GraphNode`/`GraphEdge`
+   * are tied to `scanId`, never upserted/merged across scans) — this
+   * always reflects the single latest scan, not an accumulated history.
+   * Returns `null` for the same "missing or cross-tenant" reasons as
+   * `getRepositoryForUser`; returns an empty graph (not `null`) when the
+   * repository is real and accessible but has never completed a scan.
+   */
+  async getLatestGraphForUser(
+    userId: string,
+    repositoryId: string,
+  ): Promise<RepositoryGraph | null> {
+    const repository = await this.getRepositoryForUser(userId, repositoryId);
+    if (!repository) return null;
+
+    const latestScan = await prisma.scan.findFirst({
+      where: { repositoryId, status: "COMPLETED" },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!latestScan) {
+      return { scanId: null, scanCreatedAt: null, nodes: [], edges: [] };
+    }
+
+    const [nodes, edges] = await Promise.all([
+      prisma.graphNode.findMany({ where: { scanId: latestScan.id } }),
+      prisma.graphEdge.findMany({ where: { scanId: latestScan.id } }),
+    ]);
+
+    return { scanId: latestScan.id, scanCreatedAt: latestScan.createdAt, nodes, edges };
   }
 }

@@ -6,7 +6,7 @@ import {
   Param,
   UnauthorizedException,
 } from "@nestjs/common";
-import { RepositoriesService } from "./repositories.service";
+import { RepositoriesService, type RepositoryGraph } from "./repositories.service";
 
 /**
  * `x-demo-user-id` stands in for a real session until session-based auth
@@ -40,5 +40,22 @@ export class RepositoriesController {
     }
 
     return repository;
+  }
+
+  @Get(":id/graph")
+  async getGraph(
+    @Headers("x-demo-user-id") userId: string | undefined,
+    @Param("id") id: string,
+  ): Promise<RepositoryGraph> {
+    if (!userId) {
+      throw new UnauthorizedException("x-demo-user-id header is required");
+    }
+
+    const graph = await this.repositoriesService.getLatestGraphForUser(userId, id);
+    if (!graph) {
+      throw new NotFoundException();
+    }
+
+    return graph;
   }
 }

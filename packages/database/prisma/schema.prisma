@@ -155,9 +155,52 @@ model Scan {
   jobs       ScanJob[]
   findings   Finding[]      @relation("FindingLastSeenInScan")
   aiUsage    AIUsage[]
+  graphNodes GraphNode[]
+  graphEdges GraphEdge[]
 
   @@index([repositoryId])
   @@index([repositoryId, createdAt])
+}
+
+/**
+ * One row per node in that scan's `CodeGraph` (`packages/code-intelligence`).
+ * Tied to a single `Scan`, not deduplicated/upserted across scans like
+ * `Finding` — each scan's graph is a fresh, independent snapshot, cascade
+ * -deleted with its scan. `externalId` is the id the graph builder assigned
+ * within that scan (`CodeGraphNode.id`), unique only within the scan, which
+ * is why edges below reference it rather than this row's own `id`.
+ */
+model GraphNode {
+  id         String   @id @default(cuid())
+  scanId     String
+  externalId String
+  kind       String
+  filePath   String
+  name       String
+  lineStart  Int
+  lineEnd    Int
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, externalId])
+  @@index([scanId])
+}
+
+/** One row per edge in that scan's `CodeGraph` — see `GraphNode` for the scan-scoping rationale. */
+model GraphEdge {
+  id                 String   @id @default(cuid())
+  scanId             String
+  kind               String
+  fromNodeExternalId String
+  toNodeExternalId   String
+  metadata           Json?
+  createdAt          DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
 }
 
 enum ScanJobType {
