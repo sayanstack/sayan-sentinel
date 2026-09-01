@@ -43,6 +43,43 @@ Status legend: `not started` · `in progress` · `done`
 | 32    | GitHub webhook receiver + scan queue producer                                               | done — see notes below                                                   |
 | 33    | Dashboard: real Scans & Findings pages                                                      | done — see notes below                                                   |
 | 34    | Application Graph persistence + real Code Graph page                                        | done — see notes below                                                   |
+| 35    | Attack Surface persistence + real Attack Surface page                                       | done — see notes below                                                   |
+
+## Phase 35 — Attack Surface persistence + real Attack Surface page
+
+Full writeup in [docs/attack-surface.md](attack-surface.md). Closes the
+second half of "Application Graph & Attack Surface UI" (Phase 34 closed
+the first half) — `web.crawl`/`routeCorrelation` were computed on every
+Full Stack Scan but only ever lived in memory, and there was no "Attack
+Surface" nav item at all.
+
+**Built**: `AttackSurfacePage`/`RouteCorrelationSummary` Prisma models
+(scan-scoped, cascade-deleted, JSON-blob fields for forms/matches — a
+deliberate first-version modeling choice, not a normalized schema, since
+this data is read as a unit); `persistAttackSurface()` in
+`persist-scan-result.ts`; `GET /repositories/:id/attack-surface`
+(`RepositoriesService.getLatestAttackSurfaceForUser`, sharing a new
+`findLatestCompletedScan` helper with `getLatestGraphForUser`); a new
+`/attack-surface` page and sidebar nav item.
+
+Verified in-browser the same way as every other phase this session:
+booted the compiled `apps/api` against a fake `DATABASE_URL`/`REDIS_URL`
+and confirmed the page renders its real `ErrorBanner` with the API log
+showing the expected `PrismaClientInitializationError`.
+
+**Explicitly deferred**: matched routes aren't rendered in the UI yet
+(persisted and returned by the API, just not surfaced — the unmatched
+-source-routes table was judged more actionable for a first version), no
+per-page form-to-finding cross-referencing, and — as with every
+data-backed feature this session — not verified against a real
+populated database.
+
+This closes the Application Graph/Attack Surface UI item from the
+"Bitmemiş" list explicitly named by the user. Real, data-backed nav pages
+now number seven (Overview, Repositories, Web Targets, Scans, Findings,
+Code Graph, Attack Surface) out of twelve; the rest still render an
+honest "Not implemented yet" placeholder. Sentinel Lab/Live Demo hosting
+remains the only fully-untouched item from that original list.
 
 ## Phase 34 — Application Graph persistence + real Code Graph page
 

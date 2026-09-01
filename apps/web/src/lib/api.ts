@@ -119,6 +119,47 @@ export function getRepositoryGraph(repositoryId: string): Promise<RepositoryGrap
   return apiFetch<RepositoryGraph>(`/repositories/${repositoryId}/graph`);
 }
 
+export interface AttackSurfaceForm {
+  method: string;
+  action?: string;
+  fieldNames: string[];
+}
+
+export interface AttackSurfacePageSummary {
+  id: string;
+  url: string;
+  depth: number;
+  status: number;
+  linkCount: number;
+  scriptCount: number;
+  forms: AttackSurfaceForm[];
+}
+
+export interface RouteCorrelationMatchSummary {
+  runtimeMethod: string;
+  runtimePath: string;
+  sourceRoute: { method: string; pattern: string };
+  params: Record<string, string>;
+}
+
+export interface RouteCorrelationSummary {
+  runtimeRequestCount: number;
+  matched: RouteCorrelationMatchSummary[];
+  unmatchedRuntimeRequests: Array<{ method: string; path: string }>;
+  unmatchedSourceRoutes: Array<{ method: string; pattern: string }>;
+}
+
+export interface RepositoryAttackSurface {
+  scanId: string | null;
+  scanCreatedAt: string | null;
+  pages: AttackSurfacePageSummary[];
+  routeCorrelation: RouteCorrelationSummary | null;
+}
+
+export function getRepositoryAttackSurface(repositoryId: string): Promise<RepositoryAttackSurface> {
+  return apiFetch<RepositoryAttackSurface>(`/repositories/${repositoryId}/attack-surface`);
+}
+
 export interface Organization {
   id: string;
   name: string;

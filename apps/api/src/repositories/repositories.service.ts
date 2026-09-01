@@ -1,6 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { canAccessOrganization } from "@sayan-sentinel/auth";
-import { prisma, type GraphEdge, type GraphNode } from "@sayan-sentinel/database";
+import {
+  prisma,
+  type AttackSurfacePage,
+  type GraphEdge,
+  type GraphNode,
+  type RouteCorrelationSummary,
+} from "@sayan-sentinel/database";
 import { MembershipLookupService } from "./membership-lookup.service";
 
 export interface RepositoryGraph {
@@ -8,6 +14,13 @@ export interface RepositoryGraph {
   scanCreatedAt: Date | null;
   nodes: GraphNode[];
   edges: GraphEdge[];
+}
+
+export interface RepositoryAttackSurface {
+  scanId: string | null;
+  scanCreatedAt: Date | null;
+  pages: AttackSurfacePage[];
+  routeCorrelation: RouteCorrelationSummary | null;
 }
 
 @Injectable()
@@ -61,10 +74,7 @@ export class RepositoriesService {
     const repository = await this.getRepositoryForUser(userId, repositoryId);
     if (!repository) return null;
 
-    const latestScan = await prisma.scan.findFirst({
-      where: { repositoryId, status: "COMPLETED" },
-      orderBy: { createdAt: "desc" },
-    });
+    const latestScan = await this.findLatestCompletedScan(repositoryId);
     if (!latestScan) {
       return { scanId: null, scanCreatedAt: null, nodes: [], edges: [] };
     }
@@ -75,5 +85,40 @@ export class RepositoriesService {
     ]);
 
     return { scanId: latestScan.id, scanCreatedAt: latestScan.createdAt, nodes, edges };
+  }
+
+  /**
+   * The Attack Surface (crawled pages + route correlation) for a
+   * repository's most recent completed scan — same scan-scoping and
+   * "empty, not null, once accessible" behavior as `getLatestGraphForUser`.
+   * `pages`/`routeCorrelation` are independent: a code-only scan (no
+   * verified web target) has `pages: []` but may still have a real
+   * `routeCorrelation` from its extracted source routes.
+   */
+  async getLatestAttackSurfaceForUser(
+    userId: string,
+    repositoryId: string,
+  ): Promise<RepositoryAttackSurface | null> {
+    const repository = await this.getRepositoryForUser(userId, repositoryId);
+    if (!repository) return null;
+
+    const latestScan = await this.findLatestCompletedScan(repositoryId);
+    if (!latestScan) {
+      return { scanId: null, scanCreatedAt: null, pages: [], routeCorrelation: null };
+    }
+
+    const [pages, routeCorrelation] = await Promise.all([
+      prisma.attackSurfacePage.findMany({ where: { scanId: latestScan.id } }),
+      prisma.routeCorrelationSummary.findUnique({ where: { scanId: latestScan.id } }),
+    ]);
+
+    return { scanId: latestScan.id, scanCreatedAt: latestScan.createdAt, pages, routeCorrelation };
+  }
+
+  private findLatestCompletedScan(repositoryId: string) {
+    return prisma.scan.findFirst({
+      where: { repositoryId, status: "COMPLETED" },
+      orderBy: { createdAt: "desc" },
+    });
   }
 }

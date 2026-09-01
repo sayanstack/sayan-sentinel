@@ -6,7 +6,11 @@ import {
   Param,
   UnauthorizedException,
 } from "@nestjs/common";
-import { RepositoriesService, type RepositoryGraph } from "./repositories.service";
+import {
+  RepositoriesService,
+  type RepositoryAttackSurface,
+  type RepositoryGraph,
+} from "./repositories.service";
 
 /**
  * `x-demo-user-id` stands in for a real session until session-based auth
@@ -57,5 +61,22 @@ export class RepositoriesController {
     }
 
     return graph;
+  }
+
+  @Get(":id/attack-surface")
+  async getAttackSurface(
+    @Headers("x-demo-user-id") userId: string | undefined,
+    @Param("id") id: string,
+  ): Promise<RepositoryAttackSurface> {
+    if (!userId) {
+      throw new UnauthorizedException("x-demo-user-id header is required");
+    }
+
+    const attackSurface = await this.repositoriesService.getLatestAttackSurfaceForUser(userId, id);
+    if (!attackSurface) {
+      throw new NotFoundException();
+    }
+
+    return attackSurface;
   }
 }

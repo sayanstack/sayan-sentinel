@@ -8,6 +8,8 @@ jest.mock("@sayan-sentinel/database", () => ({
     scan: { findFirst: jest.fn() },
     graphNode: { findMany: jest.fn() },
     graphEdge: { findMany: jest.fn() },
+    attackSurfacePage: { findMany: jest.fn() },
+    routeCorrelationSummary: { findUnique: jest.fn() },
   },
 }));
 
@@ -160,5 +162,84 @@ describe("RepositoriesService.getLatestGraphForUser", () => {
     expect(prisma.scan.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { repositoryId: "repo-1", status: "COMPLETED" } }),
     );
+  });
+});
+
+describe("RepositoriesService.getLatestAttackSurfaceForUser", () => {
+  let membershipLookup: MembershipLookupService;
+  let service: RepositoriesService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    membershipLookup = { getMembershipsForUser: jest.fn() } as unknown as MembershipLookupService;
+    service = new RepositoriesService(membershipLookup);
+  });
+
+  it("returns null for a cross-tenant request, without ever querying for a scan", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue(ACME_REPO);
+    (membershipLookup.getMembershipsForUser as jest.Mock).mockResolvedValue([
+      { userId: "user-mallory", organizationId: "org-globex" },
+    ]);
+
+    const result = await service.getLatestAttackSurfaceForUser("user-mallory", "repo-1");
+
+    expect(result).toBeNull();
+    expect(prisma.scan.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty attack surface (not null) for an accessible repository with no completed scan yet", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue(ACME_REPO);
+    (membershipLookup.getMembershipsForUser as jest.Mock).mockResolvedValue([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    (prisma.scan.findFirst as jest.Mock).mockResolvedValue(null);
+
+    const result = await service.getLatestAttackSurfaceForUser("user-alice", "repo-1");
+
+    expect(result).toEqual({
+      scanId: null,
+      scanCreatedAt: null,
+      pages: [],
+      routeCorrelation: null,
+    });
+    expect(prisma.attackSurfacePage.findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns the latest completed scan's pages and route correlation summary", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue(ACME_REPO);
+    (membershipLookup.getMembershipsForUser as jest.Mock).mockResolvedValue([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const scanCreatedAt = new Date("2026-01-01");
+    (prisma.scan.findFirst as jest.Mock).mockResolvedValue({
+      id: "scan-1",
+      createdAt: scanCreatedAt,
+    });
+    (prisma.attackSurfacePage.findMany as jest.Mock).mockResolvedValue([{ id: "page-1" }]);
+    (prisma.routeCorrelationSummary.findUnique as jest.Mock).mockResolvedValue({ id: "rc-1" });
+
+    const result = await service.getLatestAttackSurfaceForUser("user-alice", "repo-1");
+
+    expect(result).toEqual({
+      scanId: "scan-1",
+      scanCreatedAt,
+      pages: [{ id: "page-1" }],
+      routeCorrelation: { id: "rc-1" },
+    });
+  });
+
+  it("returns a null routeCorrelation when the scan had no extractable source routes, independent of pages", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue(ACME_REPO);
+    (membershipLookup.getMembershipsForUser as jest.Mock).mockResolvedValue([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    (prisma.scan.findFirst as jest.Mock).mockResolvedValue({ id: "scan-1", createdAt: new Date() });
+    (prisma.attackSurfacePage.findMany as jest.Mock).mockResolvedValue([{ id: "page-1" }]);
+    (prisma.routeCorrelationSummary.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const result = await service.getLatestAttackSurfaceForUser("user-alice", "repo-1");
+
+    expect(result?.pages).toEqual([{ id: "page-1" }]);
+    expect(result?.routeCorrelation).toBeNull();
   });
 });

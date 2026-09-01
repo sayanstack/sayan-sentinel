@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/scans", label: "Scans" },
   { href: "/findings", label: "Findings" },
   { href: "/code-graph", label: "Code Graph" },
+  { href: "/attack-surface", label: "Attack Surface" },
   { href: "/pull-requests", label: "Pull Requests" },
   { href: "/policies", label: "Policies" },
   { href: "/integrations", label: "Integrations" },

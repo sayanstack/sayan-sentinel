@@ -11,6 +11,8 @@ vi.mock("@sayan-sentinel/database", () => ({
     findingEvidence: { deleteMany: vi.fn(), create: vi.fn() },
     graphNode: { createMany: vi.fn() },
     graphEdge: { createMany: vi.fn() },
+    attackSurfacePage: { createMany: vi.fn() },
+    routeCorrelationSummary: { create: vi.fn() },
   },
   Prisma: {},
 }));
@@ -34,18 +36,24 @@ function finding(overrides: Partial<CorrelatedFinding> = {}): CorrelatedFinding 
 
 function minimalResult(
   findings: CorrelatedFinding[],
-  graph: FullStackScanResult["code"]["graph"] = { nodes: [], edges: [] },
+  overrides: {
+    graph?: FullStackScanResult["code"]["graph"];
+    web?: FullStackScanResult["web"];
+    routeCorrelation?: FullStackScanResult["routeCorrelation"];
+  } = {},
 ): FullStackScanResult {
   return {
     code: {
       commitSha: "abc123",
-      graph,
+      graph: overrides.graph ?? { nodes: [], edges: [] },
       scannerRuns: [],
       correlatedFindings: findings,
       securityScore: { score: 80, breakdown: [], openFindingCount: findings.length },
       policyResult: { passed: true, violations: [] },
       durationMs: 100,
     },
+    web: overrides.web,
+    routeCorrelation: overrides.routeCorrelation,
     correlatedFindings: findings,
     securityScore: { score: 80, breakdown: [], openFindingCount: findings.length },
     durationMs: 150,
@@ -165,17 +173,19 @@ describe("persistScanResult", () => {
       commitSha: "abc123",
       trigger: "MANUAL",
       result: minimalResult([], {
-        nodes: [
-          {
-            id: "node-1",
-            kind: "route",
-            filePath: "src/routes/users.ts",
-            name: "GET /users",
-            lineStart: 1,
-            lineEnd: 5,
-          },
-        ],
-        edges: [{ id: "edge-1", kind: "CALLS", fromNodeId: "node-1", toNodeId: "node-2" }],
+        graph: {
+          nodes: [
+            {
+              id: "node-1",
+              kind: "route",
+              filePath: "src/routes/users.ts",
+              name: "GET /users",
+              lineStart: 1,
+              lineEnd: 5,
+            },
+          ],
+          edges: [{ id: "edge-1", kind: "CALLS", fromNodeId: "node-1", toNodeId: "node-2" }],
+        },
       }),
     });
 
@@ -214,5 +224,104 @@ describe("persistScanResult", () => {
 
     expect(prisma.graphNode.createMany).not.toHaveBeenCalled();
     expect(prisma.graphEdge.createMany).not.toHaveBeenCalled();
+  });
+
+  it("persists crawled pages when a web target was scanned", async () => {
+    (prisma.scan.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "scan-1" });
+
+    await persistScanResult({
+      repositoryId: "repo-1",
+      commitSha: "abc123",
+      trigger: "MANUAL",
+      result: minimalResult([], {
+        web: {
+          crawl: {
+            startUrl: "https://example.com/",
+            pages: [
+              {
+                url: "https://example.com/login",
+                depth: 0,
+                status: 200,
+                links: ["https://example.com/"],
+                scripts: ["https://example.com/app.js"],
+                forms: [{ method: "post", action: "/login", fieldNames: ["email", "password"] }],
+              },
+            ],
+            visitedCount: 1,
+            skippedExternal: [],
+            truncated: false,
+            errors: [],
+          },
+          findings: [],
+        },
+      }),
+    });
+
+    expect(prisma.attackSurfacePage.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          scanId: "scan-1",
+          url: "https://example.com/login",
+          depth: 0,
+          status: 200,
+          linkCount: 1,
+          scriptCount: 1,
+          forms: [{ method: "post", action: "/login", fieldNames: ["email", "password"] }],
+        }),
+      ],
+    });
+  });
+
+  it("does not touch attackSurfacePage when there is no web target", async () => {
+    (prisma.scan.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "scan-1" });
+
+    await persistScanResult({
+      repositoryId: "repo-1",
+      commitSha: "abc123",
+      trigger: "MANUAL",
+      result: minimalResult([]),
+    });
+
+    expect(prisma.attackSurfacePage.createMany).not.toHaveBeenCalled();
+  });
+
+  it("persists a route correlation summary when source routes were extracted", async () => {
+    (prisma.scan.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "scan-1" });
+
+    await persistScanResult({
+      repositoryId: "repo-1",
+      commitSha: "abc123",
+      trigger: "MANUAL",
+      result: minimalResult([], {
+        routeCorrelation: {
+          sourceRoutes: [],
+          runtimeRequestCount: 3,
+          matched: [],
+          unmatchedRuntimeRequests: [{ method: "GET", path: "/unknown" }],
+          unmatchedSourceRoutes: [],
+        },
+      }),
+    });
+
+    expect(prisma.routeCorrelationSummary.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        scanId: "scan-1",
+        runtimeRequestCount: 3,
+        unmatchedRuntimeRequests: [{ method: "GET", path: "/unknown" }],
+      }),
+    });
+  });
+
+  it("does not touch routeCorrelationSummary when routeCorrelation wasn't computed", async () => {
+    (prisma.scan.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "scan-1" });
+
+    await persistScanResult({
+      repositoryId: "repo-1",
+      commitSha: "abc123",
+      trigger: "MANUAL",
+      result: minimalResult([]),
+    });
+
+    expect(prisma.routeCorrelationSummary.create).not.toHaveBeenCalled();
   });
 });

@@ -96,8 +96,49 @@ export async function persistScanResult(
   }
 
   await persistGraph(scan.id, input.result.code.graph);
+  await persistAttackSurface(scan.id, input.result.web, input.result.routeCorrelation);
 
   return { scanId: scan.id };
+}
+
+/**
+ * `web` is present only for a Full Stack Scan against a verified target;
+ * `routeCorrelation` is present whenever source routes were extractable,
+ * even code-only. Both are independent optionals — persisting one never
+ * implies the other is present.
+ */
+async function persistAttackSurface(
+  scanId: string,
+  web: FullStackScanResult["web"],
+  routeCorrelation: FullStackScanResult["routeCorrelation"],
+): Promise<void> {
+  if (web && web.crawl.pages.length > 0) {
+    await prisma.attackSurfacePage.createMany({
+      data: web.crawl.pages.map((page) => ({
+        scanId,
+        url: page.url,
+        depth: page.depth,
+        status: page.status,
+        linkCount: page.links.length,
+        scriptCount: page.scripts.length,
+        forms: page.forms as unknown as Prisma.InputJsonValue,
+      })),
+    });
+  }
+
+  if (routeCorrelation) {
+    await prisma.routeCorrelationSummary.create({
+      data: {
+        scanId,
+        runtimeRequestCount: routeCorrelation.runtimeRequestCount,
+        matched: routeCorrelation.matched as unknown as Prisma.InputJsonValue,
+        unmatchedRuntimeRequests:
+          routeCorrelation.unmatchedRuntimeRequests as unknown as Prisma.InputJsonValue,
+        unmatchedSourceRoutes:
+          routeCorrelation.unmatchedSourceRoutes as unknown as Prisma.InputJsonValue,
+      },
+    });
+  }
 }
 
 /**

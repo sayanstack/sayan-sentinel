@@ -157,9 +157,54 @@ model Scan {
   aiUsage    AIUsage[]
   graphNodes GraphNode[]
   graphEdges GraphEdge[]
+  attackSurfacePages AttackSurfacePage[]
+  routeCorrelation   RouteCorrelationSummary?
 
   @@index([repositoryId])
   @@index([repositoryId, createdAt])
+}
+
+/**
+ * One row per page discovered by `BoundedCrawler` during a Full Stack
+ * Scan's web crawl — present only for scans that had a verified web
+ * target (`FullStackScanResult.web`). `forms` stores the real
+ * `DiscoveredForm[]` as JSON rather than a fully normalized child table —
+ * a deliberate first-version modeling choice (see docs/attack-surface.md)
+ * since forms are read as a unit, never queried/filtered individually.
+ */
+model AttackSurfacePage {
+  id          String   @id @default(cuid())
+  scanId      String
+  url         String
+  depth       Int
+  status      Int
+  linkCount   Int
+  scriptCount Int
+  forms       Json
+  createdAt   DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+}
+
+/**
+ * One row per scan summarizing `RouteCorrelationResult` — present
+ * whenever source routes were extractable, even without a web target (in
+ * which case every source route is trivially unmatched). `matched`/
+ * `unmatchedRuntimeRequests`/`unmatchedSourceRoutes` are stored as JSON
+ * rather than normalized tables for the same reason as `AttackSurfacePage.forms`.
+ */
+model RouteCorrelationSummary {
+  id                       String   @id @default(cuid())
+  scanId                   String   @unique
+  runtimeRequestCount      Int
+  matched                  Json
+  unmatchedRuntimeRequests Json
+  unmatchedSourceRoutes    Json
+  createdAt                DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
 }
 
 /**
