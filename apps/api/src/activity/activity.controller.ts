@@ -1,15 +1,16 @@
-import { Controller, Get, Headers, UnauthorizedException } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
 import type { AuditEvent } from "@sayan-sentinel/database";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { SessionAuthGuard } from "../auth/session-auth.guard";
 import { ActivityService } from "./activity.service";
 
-/** `x-demo-user-id` stands in for a real session, matching every other controller in this app. */
 @Controller("activity")
+@UseGuards(SessionAuthGuard)
 export class ActivityController {
   constructor(private readonly activityService: ActivityService) {}
 
   @Get()
-  async list(@Headers("x-demo-user-id") userId: string | undefined): Promise<AuditEvent[]> {
-    if (!userId) throw new UnauthorizedException("x-demo-user-id header is required");
+  async list(@CurrentUser() userId: string): Promise<AuditEvent[]> {
     return this.activityService.listActivityForUser(userId);
   }
 }

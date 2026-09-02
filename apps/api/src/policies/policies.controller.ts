@@ -1,5 +1,6 @@
-import { Controller, Get, Headers, UnauthorizedException } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
 import { DEFAULT_POLICY_RULES, type PolicyRule } from "@sayan-sentinel/policy-engine";
+import { SessionAuthGuard } from "../auth/session-auth.guard";
 
 /**
  * Read-only: the actual policy rules `runFullStackScanPipeline`'s scoring
@@ -7,13 +8,14 @@ import { DEFAULT_POLICY_RULES, type PolicyRule } from "@sayan-sentinel/policy-en
  * `@sayan-sentinel/policy-engine`). No per-organization customization
  * exists yet — this is the one global set every org's scans run against,
  * not a preview of something configurable; the UI doesn't imply
- * otherwise (no edit controls).
+ * otherwise (no edit controls). Login-gated only (via the guard), not
+ * user- or org-scoped, since the rule set itself isn't.
  */
 @Controller("policies")
+@UseGuards(SessionAuthGuard)
 export class PoliciesController {
   @Get()
-  list(@Headers("x-demo-user-id") userId: string | undefined): PolicyRule[] {
-    if (!userId) throw new UnauthorizedException("x-demo-user-id header is required");
+  list(): PolicyRule[] {
     return DEFAULT_POLICY_RULES;
   }
 }

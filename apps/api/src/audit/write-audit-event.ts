@@ -1,5 +1,4 @@
 import { Prisma, prisma } from "@sayan-sentinel/database";
-import { resolveDemoUserId } from "../common/resolve-demo-user-id";
 
 export interface AuditEventInput {
   organizationId: string;
@@ -21,19 +20,10 @@ export interface AuditEventInput {
  */
 export async function writeAuditEvent(input: AuditEventInput): Promise<boolean> {
   try {
-    // AuditEvent.actorUserId is a foreign key into User.id — see
-    // resolveDemoUserId's own doc comment for why the caller-supplied
-    // value (the demo-auth stand-in header) might be email-shaped instead.
-    // Falls back to omitting the actor (never to failing the whole write)
-    // when it can't be resolved, e.g. an unrecognized email.
-    const actorUserId = input.actorUserId
-      ? ((await resolveDemoUserId(input.actorUserId)) ?? undefined)
-      : undefined;
-
     await prisma.auditEvent.create({
       data: {
         organizationId: input.organizationId,
-        actorUserId,
+        actorUserId: input.actorUserId,
         action: input.action,
         resourceType: input.resourceType,
         resourceId: input.resourceId,

@@ -9,7 +9,6 @@ import {
   type VerificationTarget,
 } from "@sayan-sentinel/security-core";
 import { writeAuditEvent } from "../audit/write-audit-event";
-import { resolveDemoUserId } from "../common/resolve-demo-user-id";
 import { MembershipLookupService } from "../repositories/membership-lookup.service";
 import {
   autoConfigureCloudflareTxtRecord,
@@ -62,13 +61,6 @@ export class TargetsService {
       return null;
     }
 
-    // TargetAuthorization.authorizedByUserId is a foreign key into User.id
-    // — see resolveDemoUserId's doc comment. Membership access was already
-    // proven above using the original (possibly email-shaped) userId; this
-    // resolves the real id specifically for the FK this create() needs.
-    const resolvedUserId = await resolveDemoUserId(userId);
-    if (!resolvedUserId) return null;
-
     const challenge = generateVerificationChallenge();
     const expiresAt = new Date(
       Date.now() + (input.expiresInDays ?? DEFAULT_EXPIRES_IN_DAYS) * MS_PER_DAY,
@@ -84,7 +76,7 @@ export class TargetsService {
         allowedPathPrefixes: input.allowedPathPrefixes ?? [],
         verificationMethod: input.verificationMethod,
         verificationChallenge: challenge,
-        authorizedByUserId: resolvedUserId,
+        authorizedByUserId: userId,
         expiresAt,
         maxTier: input.maxTier ?? DEFAULT_MAX_TIER,
       },
@@ -105,10 +97,11 @@ export class TargetsService {
 
   /**
    * The one-field onboarding path: given just a domain, resolves the
-   * caller's organization automatically (today's demo-auth model has
-   * exactly one organization per user, matching every other controller's
-   * interim single-tenant assumption — see `resolveDemoUserId`), runs
-   * best-effort DNS provider detection so the caller can show tailored
+   * caller's organization automatically (their first membership — good
+   * enough today since every real user has exactly one org via
+   * `AuthService.ensureOrganizationMembership`; a user who later belongs to
+   * several would need an explicit picker here, which doesn't exist yet),
+   * runs best-effort DNS provider detection so the caller can show tailored
    * "here's where to add this DNS record" copy, and creates the target
    * with sensible defaults (https, 443, DNS TXT) so the caller never has
    * to expose a scheme/port/method picker. Returns `null` for a host that

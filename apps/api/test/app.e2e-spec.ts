@@ -1,8 +1,10 @@
 process.env.DATABASE_URL ??= "postgresql://sentinel:sentinel@localhost:5432/sentinel";
 process.env.REDIS_URL ??= "redis://localhost:6379";
+process.env.SESSION_SECRET ??= "e2e-test-session-secret";
 
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import { createSessionToken } from "@sayan-sentinel/auth";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 
@@ -63,9 +65,13 @@ describe("Tenant-scoped endpoints (e2e)", () => {
   });
 
   it("GET /repositories with an identity but no reachable database fails honestly (500), never with fabricated data", async () => {
+    const token = createSessionToken(
+      { userId: "cuid-e2e-user", githubLogin: "e2e-test-user" },
+      process.env.SESSION_SECRET!,
+    );
     const response = await request(app.getHttpServer())
       .get("/repositories")
-      .set("x-demo-user-id", "demo@sayansentinel.local");
+      .set("authorization", `Bearer ${token}`);
     expect(response.status).toBe(500);
   }, 15_000);
 });

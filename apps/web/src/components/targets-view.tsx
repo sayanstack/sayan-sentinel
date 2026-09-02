@@ -13,6 +13,12 @@ import {
 } from "@/lib/api";
 import { DomainOnboarding } from "./domain-onboarding";
 
+function verificationMethodLabel(method: TargetAuthorizationSummary["verificationMethod"]): string {
+  if (method === "DNS_TXT") return "DNS TXT";
+  if (method === "HTTP_WELL_KNOWN") return "HTTP well-known";
+  return "HackerOne scope";
+}
+
 function statusLabel(target: TargetAuthorizationSummary): { label: string; className: string } {
   if (target.revokedAt) return { label: "Revoked", className: "text-text-muted" };
   if (new Date(target.expiresAt).getTime() <= Date.now()) {
@@ -250,7 +256,7 @@ export function TargetsView({
                       {target.scheme}://{target.host}:{target.port}
                     </td>
                     <td className="px-4 py-3 text-text-muted">
-                      {target.verificationMethod === "DNS_TXT" ? "DNS TXT" : "HTTP well-known"}
+                      {verificationMethodLabel(target.verificationMethod)}
                     </td>
                     <td className={`px-4 py-3 font-medium ${status.className}`}>{status.label}</td>
                     <td className="px-4 py-3 text-text-muted">

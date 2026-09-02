@@ -22,7 +22,7 @@ Status legend: `not started` · `in progress` · `done`
 | 12    | GitHub App integration                                                                                   | done                                                                     |
 | 13    | Policy engine + worker job pipeline                                                                      | done                                                                     |
 | 13b   | Remediation / patch / PR workflow (patch generation, approval, PR creation)                              | done                                                                     |
-| 14    | Frontend (Next.js, dashboard, code graph, findings)                                                      | in progress (2 of 10 nav pages real; rest are honest placeholders)       |
+| 14    | Frontend (Next.js, dashboard, code graph, findings)                                                      | in progress (9 of 10 nav pages real; Settings is an honest placeholder)  |
 | 15    | Vulnerable demo fixture                                                                                  | done                                                                     |
 | 16    | Tests + security regression suite                                                                        | done                                                                     |
 | 17    | Docker / CI                                                                                              | done (Dockerfiles/CI unbuilt-locally — no Docker engine here; see notes) |
@@ -45,6 +45,181 @@ Status legend: `not started` · `in progress` · `done`
 | 34    | Application Graph persistence + real Code Graph page                                                     | done — see notes below                                                   |
 | 35    | Attack Surface persistence + real Attack Surface page                                                    | done — see notes below                                                   |
 | 36    | Sentinel Lab expansion (7 → 18 vulns) + a real taint-engine bug fix                                      | done — see notes below                                                   |
+| 37    | Real GitHub-OAuth session authentication, replacing the `x-demo-user-id` header stand-in                 | done — see notes below                                                   |
+| 38    | HackerOne integration: scope-derived Target Authorization (no DNS/HTTP challenge needed)                 | done — see notes below                                                   |
+
+## Phase 38 — HackerOne integration: scope-derived Target Authorization
+
+Added a second, fundamentally different way to authorize a `TargetAuthorization`
+row besides proving domain ownership: connecting a HackerOne account and
+pulling a bug bounty program's own declared scope directly. Requested by the
+user as "can we go further than ownership verification — log in via
+HackerOne, pull scope automatically, get to a level where scanning is
+actually actionable."
+
+**A factual correction made before building anything**: HackerOne has no
+third-party OAuth login (no "Sign in with HackerOne" for external apps,
+unlike GitHub). The real, documented mechanism — confirmed against
+HackerOne's own Help Center article at the time of writing — is a personal
+**API Token**: an identifier/value pair generated at
+hackerone.com/settings/api_token, used as the HTTP Basic-Auth
+username/password. Every official HackerOne integration (Splunk, Jira,
+ServiceNow) works this way. The UI is worded accordingly ("paste your API
+token," not "sign in").
+
+**Two explicit product decisions, made by the user via AskUserQuestion
+before implementation** (this changes the platform's core trust
+primitive, so it wasn't guessed):
+1. **Persistent connection**: the API token is encrypted at rest
+   (AES-256-GCM, new `CREDENTIALS_ENCRYPTION_KEY`) and stored per
+   organization (`HackerOneConnection`), not re-entered on every sync.
+2. **Auto-verified targets**: a scope entry that syncs successfully is
+   created with `verifiedAt` already set — being an accepted participant
+   on the program *is* the authorization; no separate DNS/HTTP challenge
+   is layered on top.
+
+**New primitives** (`packages/auth`): `encryptSecret`/`decryptSecret` —
+AES-256-GCM, `<iv>.<authTag>.<ciphertext>` all base64url, GCM's auth tag
+gives a real tamper check on decrypt, not just confidentiality (6 tests).
+Kept separate from `session.ts` deliberately: sessions are signed-but-
+plaintext by design (never contain anything sensitive), this is genuinely
+encrypted because a real third-party credential has to be recoverable
+in-full later for re-sync.
+
+**New backend** (`apps/api/src/hackerone/`): `HackerOneClient` wraps the
+real Hacker API (`api.hackerone.com/v1`) — `listPrograms` (also serves as
+credential verification), `getStructuredScopes` (paginated, capped at 4,000
+entries so a pagination bug can't infinite-loop against a real account).
+`parseScopeAsset` maps a structured-scope entry's `asset_type` to a
+scheme/host/port, or returns `null` for anything Sentinel has no scanning
+primitive for (mobile apps, source code, hardware, smart contracts, ...) —
+recognizes `URL`/`WILDCARD`/`DOMAIN` today. **Honestly flagged**: those
+`asset_type` string values were sourced from HackerOne's public
+documentation, not confirmed against a live account with a real API token
+in this environment — `HackerOneService.syncProgramScope` reports every
+unrecognized type back to the caller as `skipped` with a reason, rather
+than silently guessing wrong; first real use against a live account should
+double-check the skipped list for anything that should have matched.
+
+`HackerOneService.syncProgramScope`: for each eligible, scannable scope
+entry, upserts a `TargetAuthorization` keyed on a new
+`hackerOneScopeId` column (globally unique — a HackerOne scope id can never
+legitimately back two rows), so re-syncing refreshes `expiresAt` instead of
+duplicating targets, and **never resurrects a target the user explicitly
+revoked** — revocation always wins over a re-sync. New `HackerOneConnection`
+(one per org) / `HackerOneSyncedProgram` Prisma models; new
+`HACKERONE_SCOPE` `VerificationMethod` enum value. Every write goes through
+the same tenant-membership check (`canAccessOrganization`) and
+`writeAuditEvent` pattern as the rest of the app — no new authorization
+pattern invented for this feature.
+
+**Frontend**: a HackerOne section on `/integrations` (`HackerOneConnect`,
+a client component) — connect form, program picker, sync button, a sync
+result summary that always shows the skipped-asset list with reasons (never
+hides what didn't get imported), and a standing notice that the user is
+responsible for the program's own policy (rate limits, no-automated-testing
+clauses, etc. — free text HackerOne doesn't expose as structured data, so
+Sentinel can't enforce it automatically). Disconnecting removes the stored
+credential but never deletes already-created targets. The targets table's
+verification-method column now also renders "HackerOne scope."
+
+**Verified**: `packages/auth` (25 tests total, 6 new), `apps/api` (159
+tests total, 28 new across the client/parser/service), clean `next build`.
+**Not yet verified against a real HackerOne account** — no live API token
+was available in this environment; the `asset_type` mapping and the exact
+JSON:API response shape should be double-checked against a real `/hackers/
+programs` and `/structured_scopes` response on first real use, the same way
+every other external-API integration in this codebase (GitHub App,
+Cloudflare) had its first real bugs found only by hitting the live API.
+**Also not yet done**: `CREDENTIALS_ENCRYPTION_KEY` isn't set on Railway
+(feature reports "not configured" until the user adds it, same handoff
+pattern as `SESSION_SECRET` in Phase 37), and the DB schema change
+(`HackerOneConnection`, `HackerOneSyncedProgram`, `hackerOneScopeId`,
+`HACKERONE_SCOPE`) hasn't been applied to the live Railway Postgres yet.
+
+## Phase 37 — Real GitHub-OAuth session authentication
+
+Replaced the `x-demo-user-id`/`x-demo-organization-id` header stand-in used
+throughout the API since Phase 5 with real, working session authentication —
+the single gap every prior phase's docs explicitly flagged as "not a
+finished auth layer."
+
+**Backend (`packages/auth`, `apps/api/src/auth/`):**
+
+- `packages/auth/src/session.ts` — a stateless, HMAC-SHA256-signed session
+  token (`createSessionToken`/`verifySessionToken`), deliberately not a JWT
+  library dependency. 6 tests: round-trip, wrong secret, tampered payload,
+  expiry, malformed input, wrong-length signature.
+- `packages/auth/src/oauth-state.ts` — a signed, stateless CSRF token for
+  the OAuth `state` parameter, avoiding a cookie-parsing dependency for a
+  single short-lived value. 5 tests.
+- `AuthService` reuses the GitHub App's own Client ID/Secret as a standard
+  OAuth client (every GitHub App supports this) — no separate OAuth App
+  registration needed. `completeLogin` exchanges the code, loads the
+  GitHub identity, upserts the `User` row (matched on `githubUserId`, not
+  email), and calls `ensureOrganizationMembership`.
+- `ensureOrganizationMembership` (tested via 4 `completeLogin` scenarios)
+  links a brand-new user to (1) any `Installation` whose `accountLogin`
+  matches their GitHub login, and (2) any organization with zero
+  memberships at all — an explicitly-documented, interim single-operator
+  bootstrap rule (claims pre-existing seed/demo orgs) that must be removed
+  before a second real user ever signs up, in favor of a real invite flow.
+  Falls back to creating a personal org if neither source yields one. Never
+  runs again once a user has any membership.
+- `SessionAuthGuard` + `@CurrentUser()` replace every controller's local
+  `@Headers("x-demo-user-id")` check — same `userId: string` shape, so
+  service-layer signatures didn't need to change. `AuthModule` is
+  `@Global()` (matching `SentinelConfigModule`'s own pattern) so the guard
+  is resolvable from any module without each one importing `AuthModule`.
+- Migrated: `activity`, `dashboard`, `findings`, `organizations`, `policies`,
+  `pull-requests`, `repositories`, `scans`, `targets` controllers. Deleted
+  `resolveDemoUserId` (and its now-redundant email-resolution logic in
+  `MembershipLookupService`, `writeAuditEvent`, `TargetsService.createTarget`)
+  entirely — a real session's `userId` is always already a `User.id`.
+- `TargetsController`'s manual create endpoint moved `organizationId` from
+  an `x-demo-organization-id` header into the request body
+  (`CreateTargetRequestDto`), since there's no header-based identity left
+  to piggyback on.
+
+**Frontend (`apps/web`):**
+
+- Route group restructure: `app/(app)/` now holds every authenticated page
+  (moved via `git mv` to preserve history), wrapped by `(app)/layout.tsx`
+  (fetches `githubStatus` + `getCurrentUser()`). Root `app/layout.tsx` is
+  now just the bare `<html>/<body>` shell — `/login` renders outside the
+  authenticated chrome entirely.
+- `middleware.ts` redirects to `/login` when the session cookie is simply
+  absent (an Edge-runtime fast path, not the real security boundary —
+  `SessionAuthGuard` on the API is); a present-but-expired/tampered cookie
+  degrades to each page's existing `ErrorBanner` rather than a crash.
+- `app/auth/callback/route.ts` is the cross-origin handoff target: the API
+  and this app are on different origins (Railway/Vercel), so a cookie the
+  API set directly would never be readable by this app's own server-side
+  requests. The API redirects here once with the already-signed token in
+  the URL; this route turns it into a same-origin, non-httpOnly
+  `sentinel_session` cookie.
+- `lib/session-cookie.ts`'s `readSessionToken()` is isomorphic — reads via
+  `next/headers`'s `cookies()` server-side (Server Components/Route
+  Handlers) or `document.cookie` client-side (`targets-view.tsx`/
+  `domain-onboarding.tsx` call the same `lib/api.ts` functions directly
+  from the browser) via a `typeof window` branch, so `next/headers` (a
+  server-only module) never loads into the client bundle. `lib/api.ts`
+  attaches it as `Authorization: Bearer <token>` on every request — a
+  deliberate choice over relying on the browser auto-sending a
+  cross-origin cookie, since third-party-cookie blocking (Safari ITP,
+  Chrome's phase-out) makes that pattern increasingly unreliable for a
+  split frontend/API deployment.
+- Sidebar shows the signed-in user's avatar/name with a `POST /logout`
+  sign-out control (stateless sessions — signing out is just deleting the
+  cookie, `POST`-only so a stray link/crawler can't trigger it via `GET`).
+
+**Verified:** `packages/auth` (19 tests), `apps/api` (129 tests, all
+green), a clean `next build` after the route-group restructure (all 18
+routes present at their original URLs — route groups don't affect paths).
+**Not yet verified against real infrastructure**: an actual end-to-end
+GitHub sign-in on the deployed Railway/Vercel environment (needs
+`SESSION_SECRET` set on Railway, which this phase did not do — the next
+deploy must set it before `/auth/github/login` will work in production).
 
 ## Phase 36 — Sentinel Lab expansion + taint-engine fix
 

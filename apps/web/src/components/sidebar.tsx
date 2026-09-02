@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { CurrentUser } from "@/lib/api";
 
 const NAV_ITEMS = [
   { href: "/", label: "Overview" },
@@ -21,9 +22,10 @@ export interface SidebarProps {
   /** Whether the off-canvas drawer is open on mobile — ignored at the `md` breakpoint and up, where the sidebar is always visible. */
   mobileOpen?: boolean;
   onNavigate?: () => void;
+  user: CurrentUser | null;
 }
 
-export function Sidebar({ mobileOpen = false, onNavigate }: SidebarProps) {
+export function Sidebar({ mobileOpen = false, onNavigate, user }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -58,6 +60,39 @@ export function Sidebar({ mobileOpen = false, onNavigate }: SidebarProps) {
           );
         })}
       </nav>
+
+      <div className="absolute inset-x-4 bottom-6">
+        {user ? (
+          <div className="flex items-center gap-2 rounded-md border border-border bg-surface-raised px-3 py-2">
+            {user.avatarUrl ? (
+              // A plain <img> here (not next/image) — an external GitHub avatar URL isn't worth Next's optimization pipeline for a 32px sidebar thumbnail.
+              <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
+            ) : (
+              <div className="h-7 w-7 rounded-full bg-surface" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium text-text">
+                {user.name ?? user.email}
+              </div>
+            </div>
+            <form action="/logout" method="POST">
+              <button
+                type="submit"
+                className="text-xs text-text-muted hover:text-text focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:outline-none"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        ) : (
+          <a
+            href="/login"
+            className="block rounded-md border border-border bg-surface-raised px-3 py-2 text-center text-xs text-text-muted hover:text-text"
+          >
+            Signed out — sign in
+          </a>
+        )}
+      </div>
     </aside>
   );
 }

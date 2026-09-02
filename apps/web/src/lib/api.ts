@@ -1,11 +1,6 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { readSessionToken } from "./session-cookie";
 
-/**
- * Placeholder identity until real session-based auth exists (see
- * docs/local-development.md / packages/auth's README) — matches the
- * `x-demo-user-id` header apps/api's endpoints currently read.
- */
-const DEMO_USER_ID = "demo@sayansentinel.local";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 export class ApiError extends Error {
   constructor(
@@ -20,17 +15,17 @@ export class ApiError extends Error {
 interface ApiFetchOptions {
   method?: "GET" | "POST";
   body?: unknown;
-  organizationId?: string;
 }
 
 async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  const token = await readSessionToken();
+
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
       method: options.method ?? "GET",
       headers: {
-        "x-demo-user-id": DEMO_USER_ID,
-        ...(options.organizationId ? { "x-demo-organization-id": options.organizationId } : {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...(options.body ? { "content-type": "application/json" } : {}),
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
@@ -179,7 +174,7 @@ export function listOrganizations(): Promise<Organization[]> {
   return apiFetch<Organization[]>("/organizations");
 }
 
-export type VerificationMethod = "DNS_TXT" | "HTTP_WELL_KNOWN";
+export type VerificationMethod = "DNS_TXT" | "HTTP_WELL_KNOWN" | "HACKERONE_SCOPE";
 
 export interface TargetAuthorizationSummary {
   id: string;
@@ -216,8 +211,7 @@ export function createTarget(
 ): Promise<TargetAuthorizationSummary> {
   return apiFetch<TargetAuthorizationSummary>("/targets", {
     method: "POST",
-    body: input,
-    organizationId,
+    body: { ...input, organizationId },
   });
 }
 
@@ -380,4 +374,86 @@ export interface PolicyRule {
 
 export function listPolicies(): Promise<PolicyRule[]> {
   return apiFetch<PolicyRule[]>("/policies");
+}
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+export function getCurrentUser(): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/me");
+}
+
+export interface HackerOneProgramSummary {
+  handle: string;
+  name: string;
+  submissionState: string | null;
+  offersBounties: boolean;
+}
+
+export interface HackerOneConnectionStatus {
+  connected: boolean;
+  apiTokenIdentifier: string | null;
+  lastSyncedAt: string | null;
+  lastSyncError: string | null;
+  syncedPrograms: Array<{ programHandle: string; programName: string; lastSyncedAt: string }>;
+}
+
+export interface HackerOneSkippedAsset {
+  assetType: string;
+  assetIdentifier: string;
+  reason: "unsupported_asset_type" | "not_eligible_for_submission" | "previously_revoked_by_user";
+}
+
+export interface HackerOneSyncResult {
+  programHandle: string;
+  totalScopeEntries: number;
+  created: number;
+  updated: number;
+  skipped: HackerOneSkippedAsset[];
+}
+
+export function getHackerOneStatus(organizationId: string): Promise<HackerOneConnectionStatus> {
+  return apiFetch<HackerOneConnectionStatus>(
+    `/hackerone/status?organizationId=${encodeURIComponent(organizationId)}`,
+  );
+}
+
+export function connectHackerOne(
+  organizationId: string,
+  apiTokenIdentifier: string,
+  apiTokenValue: string,
+): Promise<{ programs: HackerOneProgramSummary[] }> {
+  return apiFetch<{ programs: HackerOneProgramSummary[] }>("/hackerone/connect", {
+    method: "POST",
+    body: { organizationId, apiTokenIdentifier, apiTokenValue },
+  });
+}
+
+export function listHackerOnePrograms(
+  organizationId: string,
+): Promise<{ programs: HackerOneProgramSummary[] }> {
+  return apiFetch<{ programs: HackerOneProgramSummary[] }>(
+    `/hackerone/programs?organizationId=${encodeURIComponent(organizationId)}`,
+  );
+}
+
+export function syncHackerOneScope(
+  organizationId: string,
+  programHandle: string,
+): Promise<HackerOneSyncResult> {
+  return apiFetch<HackerOneSyncResult>("/hackerone/sync", {
+    method: "POST",
+    body: { organizationId, programHandle },
+  });
+}
+
+export function disconnectHackerOne(organizationId: string): Promise<{ disconnected: boolean }> {
+  return apiFetch<{ disconnected: boolean }>("/hackerone/disconnect", {
+    method: "POST",
+    body: { organizationId },
+  });
 }

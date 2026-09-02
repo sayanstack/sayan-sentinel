@@ -30,15 +30,17 @@ export interface WebhookHandlingResult {
  * side has existed since Phase 13, but nothing has ever produced a job for
  * it until now.
  *
- * Deliberately conservative in a few places, documented inline: an
+ * Deliberately conservative in one place, documented inline: an
  * `installation.deleted` event never deletes historical `Scan`/`Finding`
  * rows (it marks the installation suspended instead — an automated,
  * unattended webhook handler is not the place for an irreversible cascade
- * delete), and a newly auto-provisioned `Organization` (created the first
- * time a GitHub account installs the App) has zero `Membership` rows,
- * since there is no authenticated user in a server-to-server webhook
- * request to attach one to — a real "claim this installation" flow is
- * still `not started`.
+ * delete). A newly auto-provisioned `Organization` (created the first time
+ * a GitHub account installs the App) still has zero `Membership` rows at
+ * the moment this handler runs — there is no authenticated user in a
+ * server-to-server webhook request to attach one to — but that's no
+ * longer a permanent gap: `AuthService.ensureOrganizationMembership`
+ * (`apps/api/src/auth/auth.service.ts`) links the first real user who
+ * signs in under a matching GitHub login to this organization.
  */
 @Injectable()
 export class GithubWebhookService {

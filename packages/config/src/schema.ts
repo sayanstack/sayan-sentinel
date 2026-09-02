@@ -18,7 +18,8 @@ const baseEnvSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
   SESSION_SECRET: z.string().min(1).optional(),
-  COOKIE_DOMAIN: z.string().default("localhost"),
+  /** Base64-encoded 32-byte AES-256-GCM key for encrypting third-party credentials at rest (e.g. a HackerOne API token) — see @sayan-sentinel/auth's encryptSecret. Generate with: openssl rand -base64 32 */
+  CREDENTIALS_ENCRYPTION_KEY: z.string().min(1).optional(),
 
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),

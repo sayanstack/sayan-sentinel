@@ -4,49 +4,26 @@ import {
   ConflictException,
   Controller,
   Get,
-  Headers,
   NotFoundException,
   Param,
   Post,
-  UnauthorizedException,
+  UseGuards,
 } from "@nestjs/common";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { SessionAuthGuard } from "../auth/session-auth.guard";
 import { AutoConfigureCloudflareDto } from "./dto/auto-configure-cloudflare.dto";
-import { CreateTargetDto } from "./dto/create-target.dto";
+import { CreateTargetRequestDto } from "./dto/create-target.dto";
 import { QuickStartTargetDto } from "./dto/quick-start-target.dto";
 import { TargetsService } from "./targets.service";
 
-function requireUserId(userId: string | undefined): string {
-  if (!userId) throw new UnauthorizedException("x-demo-user-id header is required");
-  return userId;
-}
-
-function requireOrganizationId(organizationId: string | undefined): string {
-  if (!organizationId) {
-    throw new UnauthorizedException("x-demo-organization-id header is required");
-  }
-  return organizationId;
-}
-
-/**
- * `x-demo-user-id`/`x-demo-organization-id` stand in for a real session,
- * matching `RepositoriesController`'s documented interim pattern — this
- * exists to demonstrate and regression-test tenant isolation and the
- * verify/revoke lifecycle end to end, not as a finished auth layer.
- */
 @Controller("targets")
+@UseGuards(SessionAuthGuard)
 export class TargetsController {
   constructor(private readonly targetsService: TargetsService) {}
 
   @Post()
-  async create(
-    @Headers("x-demo-user-id") userIdHeader: string | undefined,
-    @Headers("x-demo-organization-id") organizationIdHeader: string | undefined,
-    @Body() body: CreateTargetDto,
-  ) {
-    const userId = requireUserId(userIdHeader);
-    const organizationId = requireOrganizationId(organizationIdHeader);
-
-    const target = await this.targetsService.createTarget(userId, organizationId, body);
+  async create(@CurrentUser() userId: string, @Body() body: CreateTargetRequestDto) {
+    const target = await this.targetsService.createTarget(userId, body.organizationId, body);
     if (!target) {
       // Not a member of that organization — 404, not 403, matching the
       // repositories controller's cross-tenant-existence-leak avoidance.
@@ -56,16 +33,12 @@ export class TargetsController {
   }
 
   /**
-   * The one-field onboarding path — no `x-demo-organization-id` header
-   * required, since the whole point is that the caller hasn't picked an
-   * organization yet. See `TargetsService.quickStartTarget`.
+   * The one-field onboarding path — no organization picker required,
+   * since the whole point is that the caller hasn't picked one yet. See
+   * `TargetsService.quickStartTarget`.
    */
   @Post("quick-start")
-  async quickStart(
-    @Headers("x-demo-user-id") userIdHeader: string | undefined,
-    @Body() body: QuickStartTargetDto,
-  ) {
-    const userId = requireUserId(userIdHeader);
+  async quickStart(@CurrentUser() userId: string, @Body() body: QuickStartTargetDto) {
     const result = await this.targetsService.quickStartTarget(userId, body.host);
     if (!result) {
       throw new BadRequestException(
@@ -76,8 +49,7 @@ export class TargetsController {
   }
 
   @Post(":id/scan")
-  async scan(@Headers("x-demo-user-id") userIdHeader: string | undefined, @Param("id") id: string) {
-    const userId = requireUserId(userIdHeader);
+  async scan(@CurrentUser() userId: string, @Param("id") id: string) {
     const outcome = await this.targetsService.runScanForUser(userId, id);
     if (!outcome.ok && outcome.reason === "not_found") throw new NotFoundException();
     if (!outcome.ok) {
@@ -95,11 +67,10 @@ export class TargetsController {
    */
   @Post(":id/auto-configure/cloudflare")
   async autoConfigureCloudflare(
-    @Headers("x-demo-user-id") userIdHeader: string | undefined,
+    @CurrentUser() userId: string,
     @Param("id") id: string,
     @Body() body: AutoConfigureCloudflareDto,
   ) {
-    const userId = requireUserId(userIdHeader);
     const outcome = await this.targetsService.autoConfigureCloudflareForUser(
       userId,
       id,
@@ -116,39 +87,26 @@ export class TargetsController {
   }
 
   @Get()
-  async list(@Headers("x-demo-user-id") userIdHeader: string | undefined) {
-    const userId = requireUserId(userIdHeader);
+  async list(@CurrentUser() userId: string) {
     return this.targetsService.listTargetsForUser(userId);
   }
 
   @Get(":id")
-  async getOne(
-    @Headers("x-demo-user-id") userIdHeader: string | undefined,
-    @Param("id") id: string,
-  ) {
-    const userId = requireUserId(userIdHeader);
+  async getOne(@CurrentUser() userId: string, @Param("id") id: string) {
     const target = await this.targetsService.getTargetForUser(userId, id);
     if (!target) throw new NotFoundException();
     return target;
   }
 
   @Post(":id/verify")
-  async verify(
-    @Headers("x-demo-user-id") userIdHeader: string | undefined,
-    @Param("id") id: string,
-  ) {
-    const userId = requireUserId(userIdHeader);
+  async verify(@CurrentUser() userId: string, @Param("id") id: string) {
     const result = await this.targetsService.verifyTarget(userId, id);
     if (!result) throw new NotFoundException();
     return result;
   }
 
   @Post(":id/revoke")
-  async revoke(
-    @Headers("x-demo-user-id") userIdHeader: string | undefined,
-    @Param("id") id: string,
-  ) {
-    const userId = requireUserId(userIdHeader);
+  async revoke(@CurrentUser() userId: string, @Param("id") id: string) {
     const result = await this.targetsService.revokeTarget(userId, id);
     if (!result) throw new NotFoundException();
     return result;

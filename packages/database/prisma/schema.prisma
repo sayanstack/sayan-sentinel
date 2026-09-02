@@ -55,6 +55,7 @@ model Organization {
   targetAuthorizations  TargetAuthorization[]
   auditEvents           AuditEvent[]
   aiUsage               AIUsage[]
+  hackerOneConnection   HackerOneConnection?
 
   @@index([slug])
 }
@@ -404,6 +405,8 @@ enum VerificationMethod {
   DNS_TXT
   HTTP_WELL_KNOWN
   OWNERSHIP_CONFIRMATION
+  /** Authorization comes from the asset appearing in a HackerOne program's own structured scope, not from a DNS/HTTP challenge the caller proved — see HackerOneService. */
+  HACKERONE_SCOPE
 }
 
 model TargetAuthorization {
@@ -424,6 +427,8 @@ model TargetAuthorization {
   maxTier            Int                @default(1)
   revokedAt          DateTime?
   createdAt          DateTime           @default(now())
+  /** Set only when verificationMethod is HACKERONE_SCOPE — the source structured_scope's HackerOne id, so a re-sync updates this exact row instead of guessing by host/port. Globally unique: each scope entry belongs to exactly one program in one hacker's account, so it can never legitimately back two rows even across organizations. */
+  hackerOneScopeId   String?            @unique
 
   organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   repository      Repository?          @relation(fields: [repositoryId], references: [id], onDelete: SetNull)
@@ -432,6 +437,41 @@ model TargetAuthorization {
 
   @@index([organizationId])
   @@index([host, port])
+}
+
+// ---------------------------------------------------------------------------
+// HackerOne integration — pulls a bug bounty program's own declared scope
+// as the basis for TargetAuthorization instead of a DNS/HTTP ownership
+// challenge (see HackerOneService).
+// ---------------------------------------------------------------------------
+
+model HackerOneConnection {
+  id                String    @id @default(cuid())
+  organizationId    String    @unique
+  /** The API token *identifier* HackerOne issues alongside the token value — used as the Basic-Auth username. Not secret on its own, but stored alongside the token for completeness. */
+  apiTokenIdentifier String
+  /** AES-256-GCM ciphertext (see @sayan-sentinel/auth's encryptSecret) — the raw token value is never stored in plaintext and never logged. */
+  encryptedApiToken String
+  connectedByUserId String
+  lastSyncedAt      DateTime?
+  lastSyncError     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  syncedPrograms  HackerOneSyncedProgram[]
+}
+
+model HackerOneSyncedProgram {
+  id             String   @id @default(cuid())
+  connectionId   String
+  programHandle  String
+  programName    String
+  lastSyncedAt   DateTime @default(now())
+
+  connection HackerOneConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, programHandle])
 }
 
 enum ValidationStatus {

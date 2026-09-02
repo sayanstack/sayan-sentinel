@@ -5,6 +5,7 @@ export interface FeatureFlags {
   githubAppEnabled: boolean;
   dynamicValidationEnabled: boolean;
   hostedMode: boolean;
+  hackerOneEnabled: boolean;
 }
 
 export interface SentinelConfig {
@@ -40,6 +41,7 @@ function deriveFeatureFlags(env: Env): FeatureFlags {
     githubAppEnabled,
     dynamicValidationEnabled,
     hostedMode: env.SENTINEL_HOSTED_MODE,
+    hackerOneEnabled: !!env.CREDENTIALS_ENCRYPTION_KEY,
   };
 }
 

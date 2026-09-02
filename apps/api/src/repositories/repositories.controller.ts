@@ -1,41 +1,24 @@
-import {
-  Controller,
-  Get,
-  Headers,
-  NotFoundException,
-  Param,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Controller, Get, NotFoundException, Param, UseGuards } from "@nestjs/common";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { SessionAuthGuard } from "../auth/session-auth.guard";
 import {
   RepositoriesService,
   type RepositoryAttackSurface,
   type RepositoryGraph,
 } from "./repositories.service";
 
-/**
- * `x-demo-user-id` stands in for a real session until session-based auth
- * (Section 3's `packages/auth`) grows beyond tenant-access logic — this
- * endpoint exists specifically to demonstrate and regression-test the
- * cross-tenant isolation check end to end, not as a finished auth layer.
- */
 @Controller("repositories")
+@UseGuards(SessionAuthGuard)
 export class RepositoriesController {
   constructor(private readonly repositoriesService: RepositoriesService) {}
 
   @Get()
-  async list(@Headers("x-demo-user-id") userId: string | undefined) {
-    if (!userId) {
-      throw new UnauthorizedException("x-demo-user-id header is required");
-    }
+  async list(@CurrentUser() userId: string) {
     return this.repositoriesService.listRepositoriesForUser(userId);
   }
 
   @Get(":id")
-  async getOne(@Headers("x-demo-user-id") userId: string | undefined, @Param("id") id: string) {
-    if (!userId) {
-      throw new UnauthorizedException("x-demo-user-id header is required");
-    }
-
+  async getOne(@CurrentUser() userId: string, @Param("id") id: string) {
     const repository = await this.repositoriesService.getRepositoryForUser(userId, id);
     if (!repository) {
       // Same response for "doesn't exist" and "exists but you can't see
@@ -47,14 +30,7 @@ export class RepositoriesController {
   }
 
   @Get(":id/graph")
-  async getGraph(
-    @Headers("x-demo-user-id") userId: string | undefined,
-    @Param("id") id: string,
-  ): Promise<RepositoryGraph> {
-    if (!userId) {
-      throw new UnauthorizedException("x-demo-user-id header is required");
-    }
-
+  async getGraph(@CurrentUser() userId: string, @Param("id") id: string): Promise<RepositoryGraph> {
     const graph = await this.repositoriesService.getLatestGraphForUser(userId, id);
     if (!graph) {
       throw new NotFoundException();
@@ -65,13 +41,9 @@ export class RepositoriesController {
 
   @Get(":id/attack-surface")
   async getAttackSurface(
-    @Headers("x-demo-user-id") userId: string | undefined,
+    @CurrentUser() userId: string,
     @Param("id") id: string,
   ): Promise<RepositoryAttackSurface> {
-    if (!userId) {
-      throw new UnauthorizedException("x-demo-user-id header is required");
-    }
-
     const attackSurface = await this.repositoriesService.getLatestAttackSurfaceForUser(userId, id);
     if (!attackSurface) {
       throw new NotFoundException();

@@ -1,15 +1,15 @@
-import { Controller, Get, Headers, UnauthorizedException } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { SessionAuthGuard } from "../auth/session-auth.guard";
 import { DashboardService } from "./dashboard.service";
 
 @Controller("dashboard")
+@UseGuards(SessionAuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get("summary")
-  async summary(@Headers("x-demo-user-id") userId: string | undefined) {
-    if (!userId) {
-      throw new UnauthorizedException("x-demo-user-id header is required");
-    }
+  async summary(@CurrentUser() userId: string) {
     return this.dashboardService.getSummaryForUser(userId);
   }
 }

@@ -49,11 +49,11 @@ validator`/`class-transformer` were declared dependencies since the
 
 ## API
 
-Auth is the same `x-demo-user-id`/`x-demo-organization-id` header stand-in
-`RepositoriesController` uses — not a finished session layer, documented
-identically.
+Auth is real session auth (`apps/api/src/auth/`) — `Authorization: Bearer
+<token>`, verified by `SessionAuthGuard`; see `apps/api/README.md`.
 
-- `POST /targets` — create. Body: `{ scheme, host, port, allowedPathPrefixes?, verificationMethod, expiresInDays?, maxTier?, repositoryId? }`. `verificationMethod` is restricted to `DNS_TXT`/`HTTP_WELL_KNOWN` — the schema's third value, `OWNERSHIP_CONFIRMATION`, has no verification primitive implemented yet, so the DTO doesn't accept it rather than accepting a request it can't honor. Generates the verification challenge server-side; a caller never supplies one.
+- `POST /targets` — create. Body: `{ organizationId, scheme, host, port, allowedPathPrefixes?, verificationMethod, expiresInDays?, maxTier?, repositoryId? }`. `verificationMethod` is restricted to `DNS_TXT`/`HTTP_WELL_KNOWN` — the schema's third value, `OWNERSHIP_CONFIRMATION`, has no verification primitive implemented yet, so the DTO doesn't accept it rather than accepting a request it can't honor. Generates the verification challenge server-side; a caller never supplies one.
+- A fourth `verificationMethod`, `HACKERONE_SCOPE`, exists but is never accepted from this endpoint — it's only ever set by `HackerOneService.syncProgramScope` (`apps/api/src/hackerone/`), which creates already-`verifiedAt` rows directly. See [docs/implementation-plan.md](implementation-plan.md)'s Phase 38 notes: authorization there comes from the asset appearing in a HackerOne program's own declared scope, not a DNS/HTTP challenge the caller proved.
 - `GET /targets` — list, scoped to the caller's organizations.
 - `GET /targets/:id` — single lookup; 404 (never 403) for a cross-tenant request, matching the platform-wide IDOR-safety convention.
 - `POST /targets/:id/verify` — re-checks revoked/expired state _before_ attempting verification (a revoked or expired target is never re-verified even if its DNS/HTTP challenge would still technically resolve), then runs the real `dns_txt`/`http_well_known` primitive and sets `verifiedAt` only on success.

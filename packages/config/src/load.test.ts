@@ -13,6 +13,12 @@ describe("loadConfig", () => {
     expect(config.features.aiEnabled).toBe(false);
     expect(config.features.githubAppEnabled).toBe(false);
     expect(config.features.dynamicValidationEnabled).toBe(false);
+    expect(config.features.hackerOneEnabled).toBe(false);
+  });
+
+  it("enables the HackerOne feature only once CREDENTIALS_ENCRYPTION_KEY is set", () => {
+    const config = loadConfig({ ...baseEnv, CREDENTIALS_ENCRYPTION_KEY: "some-key-value" });
+    expect(config.features.hackerOneEnabled).toBe(true);
   });
 
   it("throws ConfigValidationError when a required var is missing", () => {

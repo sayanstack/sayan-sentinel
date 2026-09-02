@@ -15,15 +15,24 @@ NestJS API — auth, repository/scan/finding endpoints, webhook ingress, GitHub 
 - `GET /health/ready` — readiness probe (via `@nestjs/terminus`) that actually queries
   Postgres (`SELECT 1` through Prisma) and pings Redis, and reports each as up/down
   truthfully rather than assuming success.
+- Real session-based authentication (`src/auth/`): `GET /auth/github/login` /
+  `GET /auth/github/callback` sign in via the GitHub App's own OAuth client,
+  `GET /auth/me` returns the current user. Sessions are a stateless,
+  HMAC-SHA256-signed token (`@sayan-sentinel/auth`'s `session.ts`) sent as
+  `Authorization: Bearer <token>` and verified by `SessionAuthGuard` — no
+  server-side session store. Every tenant-scoped controller uses
+  `@UseGuards(SessionAuthGuard)` + `@CurrentUser()` for the real `User.id`.
 - `GET /repositories/:id` — tenant-scoped repository lookup demonstrating
-  `@sayan-sentinel/auth`'s cross-tenant access check end to end. Uses a
-  `x-demo-user-id` header as a placeholder identity — real session auth
-  isn't built yet. A cross-tenant request gets 404, not 403.
+  `@sayan-sentinel/auth`'s cross-tenant access check end to end. A
+  cross-tenant request gets 404, not 403.
 
 ## Not yet implemented
 
-Real session-based authentication, scan/finding endpoints, GitHub webhook
-ingress, SSE/WebSocket updates.
+Scan/finding endpoints beyond what's listed above, SSE/WebSocket updates,
+per-organization policy customization, and a real invite flow (today, a
+brand-new user is auto-linked only to a matching GitHub App installation or
+any organization with zero members — see `AuthService.ensureOrganizationMembership`'s
+own doc comment for why that's an interim, single-operator-only rule).
 
 ## Running
 

@@ -1,6 +1,14 @@
 import { headers } from "next/headers";
 import { ErrorBanner } from "@/components/error-banner";
-import { API_URL, ApiError, getGithubAppStatus } from "@/lib/api";
+import { HackerOneConnect } from "@/components/hackerone-connect";
+import {
+  API_URL,
+  ApiError,
+  getGithubAppStatus,
+  getHackerOneStatus,
+  listOrganizations,
+  type HackerOneConnectionStatus,
+} from "@/lib/api";
 import { buildGithubAppManifest } from "@/lib/github-app-manifest";
 
 async function currentOrigin(): Promise<string> {
@@ -20,12 +28,23 @@ export default async function IntegrationsPage() {
     error = e instanceof ApiError ? e.message : "Could not reach the Sentinel API.";
   }
 
+  const organizations = await listOrganizations().catch(() => []);
+  let hackerOneStatus: HackerOneConnectionStatus | null = null;
+  let hackerOneError: string | null = null;
+  if (organizations[0]) {
+    try {
+      hackerOneStatus = await getHackerOneStatus(organizations[0].id);
+    } catch (e) {
+      hackerOneError = e instanceof ApiError ? e.message : "Could not reach the Sentinel API.";
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-text">Integrations</h1>
         <p className="mt-1 text-text-muted">
-          GitHub App, AI provider, and dynamic validation connection status.
+          GitHub App, HackerOne, AI provider, and dynamic validation connection status.
         </p>
       </header>
 
@@ -41,6 +60,21 @@ export default async function IntegrationsPage() {
           )}
         </section>
       )}
+
+      <section className="space-y-3 rounded-lg border border-border bg-surface p-6">
+        <h2 className="text-lg font-medium text-text">HackerOne</h2>
+        <p className="text-sm text-text-muted">
+          Connect a HackerOne API token and pull a bug bounty program&apos;s own declared scope
+          straight into Sentinel — assets already in scope are authorized to scan without a separate
+          DNS/HTTP ownership proof.
+        </p>
+        {hackerOneError && (
+          <ErrorBanner title="Couldn't load HackerOne status" message={hackerOneError} />
+        )}
+        {!hackerOneError && (
+          <HackerOneConnect organizations={organizations} initialStatus={hackerOneStatus} />
+        )}
+      </section>
     </div>
   );
 }

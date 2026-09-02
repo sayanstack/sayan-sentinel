@@ -1,28 +1,20 @@
-import {
-  Controller,
-  Get,
-  Headers,
-  NotFoundException,
-  Param,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Controller, Get, NotFoundException, Param, UseGuards } from "@nestjs/common";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { SessionAuthGuard } from "../auth/session-auth.guard";
 import { ScansService } from "./scans.service";
 
-/** `x-demo-user-id` stands in for a real session, matching every other controller in this app. */
 @Controller("scans")
+@UseGuards(SessionAuthGuard)
 export class ScansController {
   constructor(private readonly scansService: ScansService) {}
 
   @Get()
-  async list(@Headers("x-demo-user-id") userId: string | undefined) {
-    if (!userId) throw new UnauthorizedException("x-demo-user-id header is required");
+  async list(@CurrentUser() userId: string) {
     return this.scansService.listScansForUser(userId);
   }
 
   @Get(":id")
-  async getOne(@Headers("x-demo-user-id") userId: string | undefined, @Param("id") id: string) {
-    if (!userId) throw new UnauthorizedException("x-demo-user-id header is required");
-
+  async getOne(@CurrentUser() userId: string, @Param("id") id: string) {
     const scan = await this.scansService.getScanForUser(userId, id);
     if (!scan) throw new NotFoundException();
     return scan;

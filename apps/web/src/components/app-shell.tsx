@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import type { GithubAppStatus } from "@/lib/api";
+import type { CurrentUser, GithubAppStatus } from "@/lib/api";
 import { GithubConnectButton } from "./github-connect-button";
 import { Sidebar } from "./sidebar";
 
 export function AppShell({
   children,
   githubStatus,
+  user,
 }: {
   children: ReactNode;
   githubStatus: GithubAppStatus;
+  user: CurrentUser | null;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -47,7 +49,7 @@ export function AppShell({
         />
       )}
 
-      <Sidebar mobileOpen={mobileNavOpen} onNavigate={() => setMobileNavOpen(false)} />
+      <Sidebar mobileOpen={mobileNavOpen} onNavigate={() => setMobileNavOpen(false)} user={user} />
 
       <main className="flex-1 p-6 pt-20 md:p-8 md:pt-8">{children}</main>
     </div>

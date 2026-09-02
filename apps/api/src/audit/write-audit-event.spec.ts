@@ -4,7 +4,6 @@ import { writeAuditEvent } from "./write-audit-event";
 jest.mock("@sayan-sentinel/database", () => ({
   prisma: {
     auditEvent: { create: jest.fn() },
-    user: { findUnique: jest.fn() },
   },
 }));
 
@@ -19,26 +18,10 @@ describe("writeAuditEvent", () => {
     result: "success",
   };
 
-  it("writes the actorUserId through unchanged when it isn't email-shaped", async () => {
+  it("writes the real actorUserId from a verified session through unchanged", async () => {
     (prisma.auditEvent.create as jest.Mock).mockResolvedValue({});
 
-    const ok = await writeAuditEvent({ ...baseInput, actorUserId: "user-alice" });
-
-    expect(ok).toBe(true);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-    expect(prisma.auditEvent.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ actorUserId: "user-alice" }) }),
-    );
-  });
-
-  it("resolves an email-shaped actorUserId to the real User.id before writing", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: "cuid-real-user-id" });
-    (prisma.auditEvent.create as jest.Mock).mockResolvedValue({});
-
-    const ok = await writeAuditEvent({
-      ...baseInput,
-      actorUserId: "demo@sayansentinel.local",
-    });
+    const ok = await writeAuditEvent({ ...baseInput, actorUserId: "cuid-real-user-id" });
 
     expect(ok).toBe(true);
     expect(prisma.auditEvent.create).toHaveBeenCalledWith(
@@ -48,11 +31,10 @@ describe("writeAuditEvent", () => {
     );
   });
 
-  it("omits the actor rather than failing the write when the email can't be resolved", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+  it("omits the actor when none was given", async () => {
     (prisma.auditEvent.create as jest.Mock).mockResolvedValue({});
 
-    const ok = await writeAuditEvent({ ...baseInput, actorUserId: "nobody@example.com" });
+    const ok = await writeAuditEvent(baseInput);
 
     expect(ok).toBe(true);
     expect(prisma.auditEvent.create).toHaveBeenCalledWith(
@@ -63,7 +45,7 @@ describe("writeAuditEvent", () => {
   it("returns false instead of throwing when the underlying write fails", async () => {
     (prisma.auditEvent.create as jest.Mock).mockRejectedValue(new Error("db unavailable"));
 
-    const ok = await writeAuditEvent({ ...baseInput, actorUserId: "user-alice" });
+    const ok = await writeAuditEvent({ ...baseInput, actorUserId: "cuid-real-user-id" });
 
     expect(ok).toBe(false);
   });

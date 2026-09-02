@@ -2,10 +2,12 @@ import { randomUUID } from "node:crypto";
 import { Module } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
 import { ActivityModule } from "./activity/activity.module";
+import { AuthModule } from "./auth/auth.module";
 import { SentinelConfigModule } from "./config/sentinel-config.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { FindingsModule } from "./findings/findings.module";
 import { GithubWebhookModule } from "./github/github-webhook.module";
+import { HackerOneModule } from "./hackerone/hackerone.module";
 import { HealthModule } from "./health/health.module";
 import { OrganizationsModule } from "./organizations/organizations.module";
 import { PoliciesModule } from "./policies/policies.module";
@@ -45,6 +47,7 @@ import { TargetsModule } from "./targets/targets.module";
       },
     }),
     HealthModule,
+    AuthModule,
     OrganizationsModule,
     RepositoriesModule,
     TargetsModule,
@@ -55,6 +58,7 @@ import { TargetsModule } from "./targets/targets.module";
     ActivityModule,
     PullRequestsModule,
     PoliciesModule,
+    HackerOneModule,
   ],
 })
 export class AppModule {}

@@ -9,7 +9,7 @@ data instead of a "not built yet" notice.
 ## Backend
 
 - `GET /scans` (`apps/api/src/scans/`) — every `Scan` for a repository
-  owned by any organization the caller (`x-demo-user-id`) is a member of,
+  owned by any organization the caller (real session, `@CurrentUser()`) is a member of,
   newest first, capped at 100, with `repository: {owner, name}` joined in
   so the UI doesn't need a second round trip per row.
 - `GET /scans/:id` — single scan, same "null for both missing and

@@ -47,3 +47,14 @@ export class CreateTargetDto {
   @IsString()
   repositoryId?: string;
 }
+
+/**
+ * The manual "advanced setup" create endpoint's request body — the caller
+ * picks an organization explicitly (unlike `quick-start`, which resolves
+ * it automatically), so this is `CreateTargetDto` plus that one field
+ * rather than a change to the DTO the service layer already works with.
+ */
+export class CreateTargetRequestDto extends CreateTargetDto {
+  @IsString()
+  organizationId!: string;
+}
