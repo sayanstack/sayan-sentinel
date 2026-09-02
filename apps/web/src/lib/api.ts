@@ -179,6 +179,35 @@ export function listOrganizations(): Promise<Organization[]> {
   return apiFetch<Organization[]>("/organizations");
 }
 
+export interface OrganizationMember {
+  userId: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+  role: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+  joinedAt: string;
+}
+
+export interface OrganizationDetail extends Organization {
+  createdAt: string;
+  members: OrganizationMember[];
+}
+
+export function getOrganization(id: string): Promise<OrganizationDetail> {
+  return apiFetch<OrganizationDetail>(`/organizations/${id}`);
+}
+
+export interface AiUsageSummary {
+  enabled: boolean;
+  monthlyBudgetUsd: number;
+  perScanBudgetUsd: number;
+  spentThisMonthUsd: number;
+}
+
+export function getAiUsage(organizationId: string): Promise<AiUsageSummary> {
+  return apiFetch<AiUsageSummary>(`/organizations/${organizationId}/ai-usage`);
+}
+
 export type VerificationMethod = "DNS_TXT" | "HTTP_WELL_KNOWN" | "HACKERONE_SCOPE";
 
 export interface TargetAuthorizationSummary {
