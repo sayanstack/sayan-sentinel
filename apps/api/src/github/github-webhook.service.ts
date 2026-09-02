@@ -304,6 +304,83 @@ export class GithubWebhookService {
     }
   }
 
+  /**
+   * The manual counterpart to `handlePush`/`handlePullRequest` — same
+   * enqueue logic, triggered by a user clicking "Scan now" instead of a
+   * webhook, against the repository's default branch HEAD. Callers are
+   * responsible for their own tenant-access check before calling this
+   * (mirrors `RepositoriesController`'s existing pattern) since this takes
+   * a bare repositoryId, not a userId.
+   */
+  async triggerManualScan(
+    repositoryId: string,
+  ): Promise<
+    { ok: true; scanId: string } | { ok: false; reason: "not_found" | "github_not_configured" }
+  > {
+    const repository = await prisma.repository.findUnique({
+      where: { id: repositoryId },
+      include: { installation: true },
+    });
+    if (!repository) return { ok: false, reason: "not_found" };
+    if (!this.githubClient) return { ok: false, reason: "github_not_configured" };
+
+    const githubInstallationId = Number(repository.installation.githubInstallationId);
+    const branch = await this.fetchDefaultBranch(
+      githubInstallationId,
+      repository.owner,
+      repository.name,
+    );
+
+    let commitSha: string;
+    try {
+      commitSha = await this.githubClient.getBranchHeadSha(
+        githubInstallationId,
+        repository.owner,
+        repository.name,
+        branch,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch HEAD sha for ${repository.owner}/${repository.name}@${branch}: ${String(error)}`,
+      );
+      return { ok: false, reason: "github_not_configured" };
+    }
+
+    const scanId = randomUUID();
+    const repositoryUrl = await this.buildCloneUrl(
+      githubInstallationId,
+      repository.owner,
+      repository.name,
+    );
+
+    await this.scanQueue.add("scan", {
+      repositoryUrl,
+      commitSha,
+      branch,
+      workspaceDir: join(tmpdir(), "sentinel-scans", scanId),
+      scanId,
+      localLabMode: false,
+      repositoryId: repository.id,
+      trigger: "MANUAL",
+      github: {
+        installationId: githubInstallationId,
+        owner: repository.owner,
+        repo: repository.name,
+      },
+    } satisfies ScanJobData);
+
+    await writeAuditEvent({
+      organizationId: repository.organizationId,
+      action: "SCAN_ENQUEUED_MANUALLY",
+      resourceType: "Repository",
+      resourceId: repository.id,
+      result: "success",
+      metadata: { commitSha, branch, scanId },
+    });
+
+    return { ok: true, scanId };
+  }
+
   private async fetchDefaultBranch(
     githubInstallationId: number,
     owner: string,

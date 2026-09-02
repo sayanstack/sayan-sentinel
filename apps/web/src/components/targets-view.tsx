@@ -36,6 +36,14 @@ export function TargetsView({
   organizations: Organization[];
 }) {
   const [targets, setTargets] = useState(initialTargets);
+  // The onboarding hero is for first-time setup — once at least one active
+  // (not revoked/expired) target already exists, showing it by default on
+  // every visit to this page re-prompted for a domain that was already
+  // verified. Collapsed by default whenever there's something to show
+  // instead; "+ Add another domain" re-opens it.
+  const [onboardingOpen, setOnboardingOpen] = useState(
+    () => !initialTargets.some((t) => !t.revokedAt && new Date(t.expiresAt).getTime() > Date.now()),
+  );
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -123,7 +131,17 @@ export function TargetsView({
 
   return (
     <div className="space-y-6">
-      <DomainOnboarding onCreated={upsertTarget} onVerified={upsertTarget} />
+      {onboardingOpen ? (
+        <DomainOnboarding onCreated={upsertTarget} onVerified={upsertTarget} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOnboardingOpen(true)}
+          className="text-sm text-accent-cyan hover:underline"
+        >
+          + Add another domain
+        </button>
+      )}
 
       <div>
         <button

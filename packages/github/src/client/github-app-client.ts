@@ -85,6 +85,18 @@ export class GitHubAppClient {
     return data;
   }
 
+  /** The HEAD commit sha of a branch — used to enqueue a manually-triggered scan against the same commit a push to that branch would scan. */
+  async getBranchHeadSha(
+    installationId: number,
+    owner: string,
+    repo: string,
+    branch: string,
+  ): Promise<string> {
+    const octokit = await this.getInstallationOctokit(installationId);
+    const { data } = await octokit.rest.repos.getBranch({ owner, repo, branch });
+    return data.commit.sha;
+  }
+
   async getPullRequest(installationId: number, owner: string, repo: string, pullNumber: number) {
     const octokit = await this.getInstallationOctokit(installationId);
     const { data } = await octokit.rest.pulls.get({ owner, repo, pull_number: pullNumber });

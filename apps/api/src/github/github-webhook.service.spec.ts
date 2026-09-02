@@ -23,6 +23,7 @@ function fakeGithubClient(overrides: Partial<GitHubAppClient> = {}): GitHubAppCl
   return {
     getRepository: jest.fn().mockResolvedValue({ default_branch: "main" }),
     createInstallationAccessToken: jest.fn().mockResolvedValue("fake-installation-token"),
+    getBranchHeadSha: jest.fn().mockResolvedValue("head-sha-123"),
     ...overrides,
   } as unknown as GitHubAppClient;
 }
@@ -291,6 +292,66 @@ describe("GithubWebhookService.handlePullRequest", () => {
     const result = await service.handlePullRequest({ ...basePr, action: "closed" });
 
     expect(result.status).toBe("ignored-unhandled-action");
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+});
+
+describe("GithubWebhookService.triggerManualScan", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("enqueues a scan against the default branch's real HEAD commit", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue({
+      id: "repo-1",
+      organizationId: "org-1",
+      owner: "acme",
+      name: "widgets",
+      installation: { githubInstallationId: "555" },
+    });
+    const githubClient = fakeGithubClient({
+      getRepository: jest.fn().mockResolvedValue({ default_branch: "develop" }),
+      getBranchHeadSha: jest.fn().mockResolvedValue("real-head-sha"),
+    });
+    const queue = fakeQueue();
+    const service = new GithubWebhookService(githubClient, queue);
+
+    const outcome = await service.triggerManualScan("repo-1");
+
+    expect(outcome.ok).toBe(true);
+    expect(githubClient.getBranchHeadSha).toHaveBeenCalledWith(555, "acme", "widgets", "develop");
+    expect(queue.add).toHaveBeenCalledWith(
+      "scan",
+      expect.objectContaining({
+        commitSha: "real-head-sha",
+        branch: "develop",
+        repositoryId: "repo-1",
+        trigger: "MANUAL",
+      }),
+    );
+  });
+
+  it("reports not_found for a nonexistent repository", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue(null);
+    const service = new GithubWebhookService(fakeGithubClient(), fakeQueue());
+
+    const outcome = await service.triggerManualScan("does-not-exist");
+
+    expect(outcome).toEqual({ ok: false, reason: "not_found" });
+  });
+
+  it("reports github_not_configured when no GitHub App client is wired up", async () => {
+    (prisma.repository.findUnique as jest.Mock).mockResolvedValue({
+      id: "repo-1",
+      organizationId: "org-1",
+      owner: "acme",
+      name: "widgets",
+      installation: { githubInstallationId: "555" },
+    });
+    const queue = fakeQueue();
+    const service = new GithubWebhookService(null, queue);
+
+    const outcome = await service.triggerManualScan("repo-1");
+
+    expect(outcome).toEqual({ ok: false, reason: "github_not_configured" });
     expect(queue.add).not.toHaveBeenCalled();
   });
 });

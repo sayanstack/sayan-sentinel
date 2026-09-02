@@ -1,4 +1,5 @@
 import { ErrorBanner } from "@/components/error-banner";
+import { RepositoriesView } from "@/components/repositories-view";
 import { ApiError, listRepositories } from "@/lib/api";
 
 export default async function RepositoriesPage() {
@@ -29,34 +30,7 @@ export default async function RepositoriesPage() {
         </div>
       )}
 
-      {repositories && repositories.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-surface text-text-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Repository</th>
-                <th className="px-4 py-3 font-medium">Default branch</th>
-                <th className="px-4 py-3 font-medium">Visibility</th>
-                <th className="px-4 py-3 font-medium">Last ingested</th>
-              </tr>
-            </thead>
-            <tbody>
-              {repositories.map((repo) => (
-                <tr key={repo.id} className="border-t border-border">
-                  <td className="px-4 py-3 text-text">
-                    {repo.owner}/{repo.name}
-                  </td>
-                  <td className="px-4 py-3 text-text-muted">{repo.defaultBranch}</td>
-                  <td className="px-4 py-3 text-text-muted">
-                    {repo.private ? "Private" : "Public"}
-                  </td>
-                  <td className="px-4 py-3 text-text-muted">{repo.lastIngestedSha ?? "Never"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {repositories && repositories.length > 0 && <RepositoriesView repositories={repositories} />}
     </div>
   );
 }

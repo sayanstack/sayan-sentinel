@@ -61,6 +61,26 @@ export class TargetsService {
       return null;
     }
 
+    const host = input.host.toLowerCase();
+
+    // Idempotent: re-submitting the same organization/host/port/scheme (the
+    // onboarding hero re-mounts with no memory of what it already created,
+    // so re-visiting it or re-entering the same domain called this again)
+    // returns the existing, still-active authorization instead of minting a
+    // fresh DNS challenge and orphaning whatever the owner already
+    // published — a real bug found by actually re-running the flow twice.
+    const existing = await prisma.targetAuthorization.findFirst({
+      where: {
+        organizationId,
+        host,
+        port: input.port,
+        scheme: input.scheme,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (existing) return existing;
+
     const challenge = generateVerificationChallenge();
     const expiresAt = new Date(
       Date.now() + (input.expiresInDays ?? DEFAULT_EXPIRES_IN_DAYS) * MS_PER_DAY,
@@ -71,7 +91,7 @@ export class TargetsService {
         organizationId,
         repositoryId: input.repositoryId,
         scheme: input.scheme,
-        host: input.host.toLowerCase(),
+        host,
         port: input.port,
         allowedPathPrefixes: input.allowedPathPrefixes ?? [],
         verificationMethod: input.verificationMethod,

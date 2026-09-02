@@ -74,6 +74,11 @@ export function listRepositories(): Promise<RepositorySummary[]> {
   return apiFetch<RepositorySummary[]>("/repositories");
 }
 
+/** Manually enqueues a Full Stack Scan of the repository's default-branch HEAD — the same pipeline a push/PR webhook triggers automatically. */
+export function scanRepository(id: string): Promise<{ scanId: string }> {
+  return apiFetch<{ scanId: string }>(`/repositories/${id}/scan`, { method: "POST" });
+}
+
 export interface GithubAppStatus {
   configured: boolean;
   slug: string | null;

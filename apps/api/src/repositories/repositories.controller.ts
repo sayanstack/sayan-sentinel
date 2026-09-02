@@ -1,6 +1,15 @@
-import { Controller, Get, NotFoundException, Param, UseGuards } from "@nestjs/common";
+import {
+  ConflictException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { SessionAuthGuard } from "../auth/session-auth.guard";
+import { GithubWebhookService } from "../github/github-webhook.service";
 import {
   RepositoriesService,
   type RepositoryAttackSurface,
@@ -10,7 +19,10 @@ import {
 @Controller("repositories")
 @UseGuards(SessionAuthGuard)
 export class RepositoriesController {
-  constructor(private readonly repositoriesService: RepositoriesService) {}
+  constructor(
+    private readonly repositoriesService: RepositoriesService,
+    private readonly githubWebhookService: GithubWebhookService,
+  ) {}
 
   @Get()
   async list(@CurrentUser() userId: string) {
@@ -27,6 +39,28 @@ export class RepositoriesController {
     }
 
     return repository;
+  }
+
+  /**
+   * Manual counterpart to the webhook-triggered scan (push/PR) — same
+   * enqueue path, against the repository's current default-branch HEAD.
+   * Tenant-checked here (404 for cross-tenant/nonexistent, matching every
+   * other lookup on this controller) before ever touching GitHub or the
+   * queue.
+   */
+  @Post(":id/scan")
+  async scan(@CurrentUser() userId: string, @Param("id") id: string) {
+    const repository = await this.repositoriesService.getRepositoryForUser(userId, id);
+    if (!repository) throw new NotFoundException();
+
+    const outcome = await this.githubWebhookService.triggerManualScan(id);
+    if (!outcome.ok && outcome.reason === "not_found") throw new NotFoundException();
+    if (!outcome.ok) {
+      throw new ConflictException(
+        "GitHub App isn't configured on this deployment, so a scan can't be enqueued.",
+      );
+    }
+    return { scanId: outcome.scanId };
   }
 
   @Get(":id/graph")

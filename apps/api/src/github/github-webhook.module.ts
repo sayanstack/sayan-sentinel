@@ -79,5 +79,6 @@ const deliveryStoreProvider: Provider = {
     scanQueueProvider,
     deliveryStoreProvider,
   ],
+  exports: [GithubWebhookService],
 })
 export class GithubWebhookModule {}

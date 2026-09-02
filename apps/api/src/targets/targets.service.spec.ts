@@ -10,6 +10,7 @@ jest.mock("@sayan-sentinel/database", () => ({
   prisma: {
     targetAuthorization: {
       create: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
@@ -97,6 +98,56 @@ describe("TargetsService.createTarget", () => {
 
     expect(result).toBeNull();
     expect(prisma.targetAuthorization.create).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Regression: re-submitting the same domain (re-visiting the onboarding
+   * hero, which has no memory of what it already created) used to always
+   * mint a brand new challenge and row, silently orphaning whatever DNS
+   * record the owner had already published — found by actually re-running
+   * the quick-start flow twice against the same host.
+   */
+  it("returns the existing active target instead of creating a duplicate for the same org/host/port/scheme", async () => {
+    (prisma.targetAuthorization.findFirst as jest.Mock).mockResolvedValue(ACME_TARGET);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    const result = await service.createTarget("user-alice", "org-acme", {
+      scheme: "https",
+      host: "app.acme.example.com",
+      port: 443,
+      verificationMethod: "DNS_TXT",
+    });
+
+    expect(result).toEqual(ACME_TARGET);
+    expect(prisma.targetAuthorization.create).not.toHaveBeenCalled();
+    expect(generateVerificationChallenge).not.toHaveBeenCalled();
+  });
+
+  it("creates a new target when the matching existing one is revoked", async () => {
+    (prisma.targetAuthorization.findFirst as jest.Mock).mockResolvedValue(null);
+    (generateVerificationChallenge as jest.Mock).mockReturnValue("generated-challenge");
+    (prisma.targetAuthorization.create as jest.Mock).mockResolvedValue(ACME_TARGET);
+    const membershipLookup = membershipLookupWith([
+      { userId: "user-alice", organizationId: "org-acme" },
+    ]);
+    const service = new TargetsService(membershipLookup);
+
+    await service.createTarget("user-alice", "org-acme", {
+      scheme: "https",
+      host: "app.acme.example.com",
+      port: 443,
+      verificationMethod: "DNS_TXT",
+    });
+
+    expect(prisma.targetAuthorization.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ revokedAt: null }),
+      }),
+    );
+    expect(prisma.targetAuthorization.create).toHaveBeenCalled();
   });
 });
 
