@@ -72,9 +72,15 @@ async function runGit(args: string[], options: RunGitOptions): Promise<void> {
   } catch (error) {
     const execError = error as { stderr?: string; killed?: boolean; signal?: string };
     const timedOut = Boolean(execError.killed && execError.signal === "SIGTERM");
+    // Real bug found in production: a spawn failure (e.g. the `git` binary
+    // missing entirely — ENOENT) still sets `stderr` to an empty string
+    // rather than leaving it `undefined`, so `?? String(error)` never fired
+    // and every such failure logged as "git ... failed for ...: " with the
+    // actual reason (here, "spawn git ENOENT") silently swallowed. `||`
+    // falls through on empty string too, not just null/undefined.
     throw new GitCommandError(
       args,
-      execError.stderr ?? String(error),
+      execError.stderr || String(error),
       timedOut,
       options.repositoryUrl,
     );

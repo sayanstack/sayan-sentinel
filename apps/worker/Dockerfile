@@ -26,6 +26,10 @@ RUN pnpm turbo run build --filter=@sayan-sentinel/worker...
 
 FROM base AS runner
 WORKDIR /app
+# Real deployment failure: every scan job failed at `git init` with an
+# empty error message — this image had no `git` binary at all (alpine
+# ships without one), so every git-ingestor.ts command spawn threw ENOENT.
+RUN apk add --no-cache git
 RUN addgroup --system --gid 1001 sentinel && adduser --system --uid 1001 sentinel
 COPY --from=installer --chown=sentinel:sentinel /app .
 USER sentinel

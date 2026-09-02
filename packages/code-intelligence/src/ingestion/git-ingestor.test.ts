@@ -111,6 +111,35 @@ describe("cloneRepositoryAtCommit", () => {
     expect(fs.existsSync(path.join(destDir, "second.txt"))).toBe(false);
   });
 
+  /**
+   * Regression: a real deployment ran this against a container image with
+   * no `git` binary at all — every command spawn failed with ENOENT, but
+   * `execError.stderr` came back as `""` (not `undefined`), so the old
+   * `execError.stderr ?? String(error)` never fell through to the actual
+   * reason. Every failure logged as "git init ... failed for ...: " with
+   * nothing after the colon, which is exactly what made the real cause
+   * invisible until the raw deploy logs were read directly.
+   */
+  it("throws a GitCommandError with a real, non-empty reason when the git binary itself can't be found (ENOENT)", async () => {
+    const originalPath = process.env.PATH;
+    process.env.PATH = "";
+    try {
+      await cloneRepositoryAtCommit({
+        repositoryUrl: originDir,
+        commitSha: firstCommitSha,
+        destinationDir: destDir,
+      });
+      expect.fail("expected cloneRepositoryAtCommit to throw when git can't be found");
+    } catch (error) {
+      expect(error).toBeInstanceOf(GitCommandError);
+      const gitError = error as GitCommandError;
+      expect(gitError.message).not.toMatch(/: $/);
+      expect(gitError.stderr.length).toBeGreaterThan(0);
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  }, 10_000);
+
   it("redacts an embedded credential from both the error message and the captured stderr", async () => {
     expect.assertions(3);
     try {
